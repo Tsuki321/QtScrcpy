@@ -413,6 +413,12 @@ private slots:
         video.resize(980, 690);
         QVERIFY(previews.last().first().toString().isEmpty());
         QCOMPARE(calibration.size(), video.size());
+        QTest::keyRelease(&calibration, Qt::Key_Space);
+        video.resize(200, 200);
+        const int previewCount = previews.count();
+        QTest::mouseClick(&calibration, Qt::LeftButton, Qt::NoModifier, QPoint(150, 150));
+        QTest::keyClick(&calibration, Qt::Key_Space);
+        QCOMPARE(previews.count(), previewCount); // No sweep in the converter's cursor-warp zone.
         QTest::keyClick(&calibration, Qt::Key_Escape);
         QCOMPARE(accepted.count(), 0);
         QCOMPARE(finished.count(), 1);

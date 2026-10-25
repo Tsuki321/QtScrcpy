@@ -119,7 +119,7 @@ void MouseLookCalibration::refresh(const QString &message)
         instructions = tr("Click the SAME detail at its new position. If it moved out of view, choose Point left screen and the next sweep will be slower.");
         break;
     case Result:
-        instructions = tr("Matched camera motion to desktop mouse travel near the center of the view.\nHold Space for a short test; release to stop. Use calibration updates the editor, then Apply to play and Save to keep the profile.\nRecalibrate after changing mouse DPI, game sensitivity, zoom or window size.");
+        instructions = tr("Matched camera motion to desktop mouse travel near the center of the view.\nHold Space for a short test; release to stop. Use calibration updates the editor. Save the profile, then Apply to play.\nRecalibrate after changing mouse DPI, game sensitivity, zoom or window size.");
         break;
     case Testing:
         instructions = tr("Try the feel. Release Space to stop testing; Escape cancels.");
@@ -139,6 +139,10 @@ void MouseLookCalibration::refresh(const QString &message)
 
 void MouseLookCalibration::startMotion(bool testing)
 {
+    if (qMin(width(), height()) < 300 || qMax(width(), height()) < 480) {
+        refresh(tr("Enlarge the game view to at least 480 x 300 (or 300 x 480) before starting a sweep."));
+        return;
+    }
     m_stage = testing ? Testing : Recording;
     m_motion = QPointF();
     m_travel = 0;
@@ -350,6 +354,9 @@ void MouseLookCalibration::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
+    const int footerWidth = qMin(width() - 20, 500);
+    painter.fillRect(QRect((width() - footerWidth) / 2, height() - 68, footerWidth,
+        m_stage == Recording || m_stage == Testing ? 60 : 28), QColor(20, 25, 31, 210));
     painter.setPen(Qt::white);
     painter.drawText(QRect(10, height() - 65, width() - 20, 24), Qt::AlignCenter,
         tr("Tab: show/hide instructions | Esc: cancel"));
