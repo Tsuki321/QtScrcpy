@@ -101,6 +101,7 @@ QYUVOpenGLWidget::~QYUVOpenGLWidget()
     makeCurrent();
     m_vbo.destroy();
     deInitTextures();
+    deInitPBOs();
     doneCurrent();
 }
 
@@ -119,7 +120,6 @@ void QYUVOpenGLWidget::setFrameSize(const QSize &frameSize)
     if (m_frameSize != frameSize) {
         m_frameSize = frameSize;
         m_needUpdate = true;
-        // inittexture immediately
         repaint();
     }
 }
@@ -129,13 +129,37 @@ const QSize &QYUVOpenGLWidget::frameSize()
     return m_frameSize;
 }
 
+void QYUVOpenGLWidget::initPBOs()
+{
+}
+
+void QYUVOpenGLWidget::deInitPBOs()
+{
+    if (!m_pboInited) {
+        return;
+    }
+    if (QOpenGLFunctions::isInitialized(QOpenGLFunctions::d_ptr)) {
+        for (int i = 0; i < 3; ++i) {
+            if (m_pbo[i][0] || m_pbo[i][1]) {
+                glDeleteBuffers(2, m_pbo[i]);
+            }
+        }
+    }
+    memset(m_pbo, 0, sizeof(m_pbo));
+    memset(m_pboStride, 0, sizeof(m_pboStride));
+    m_pboInited = false;
+}
+
 void QYUVOpenGLWidget::updateTextures(quint8 *dataY, quint8 *dataU, quint8 *dataV, quint32 linesizeY, quint32 linesizeU, quint32 linesizeV)
 {
     if (m_textureInited) {
+        makeCurrent();
         updateTexture(m_texture[0], 0, dataY, linesizeY);
         updateTexture(m_texture[1], 1, dataU, linesizeU);
         updateTexture(m_texture[2], 2, dataV, linesizeV);
-        update();
+        m_pboIndex = 1 - m_pboIndex;
+        doneCurrent();
+        repaint();
     }
 }
 
@@ -144,14 +168,11 @@ void QYUVOpenGLWidget::initializeGL()
     initializeOpenGLFunctions();
     glDisable(GL_DEPTH_TEST);
 
-    // 顶点缓冲对象初始化
     m_vbo.create();
     m_vbo.bind();
     m_vbo.allocate(coordinate, sizeof(coordinate));
     initShader();
-    // 设置背景清理色为黑色
     glClearColor(0.0, 0.0, 0.0, 0.0);
-    // 清理颜色背景
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
@@ -160,8 +181,10 @@ void QYUVOpenGLWidget::paintGL()
     m_shaderProgram.bind();
 
     if (m_needUpdate) {
+        deInitPBOs();
         deInitTextures();
         initTextures();
+        initPBOs();
         m_needUpdate = false;
     }
 
@@ -268,10 +291,50 @@ void QYUVOpenGLWidget::updateTexture(GLuint texture, quint32 textureType, quint8
         return;
 
     QSize size = 0 == textureType ? m_frameSize : m_frameSize / 2;
+    int rowBytes = size.width();
+    int height = size.height();
+    int pboSize = stride * height;
 
-    makeCurrent();
+    if (m_pboInited && m_pboStride[textureType] != stride) {
+        deInitPBOs();
+    }
+
+    if (!m_pboInited) {
+        quint32 strides[3] = { stride, stride, stride };
+        for (int i = 0; i < 3; ++i) {
+            int h = 0 == i ? m_frameSize.height() : m_frameSize.height() / 2;
+            int sz = strides[i] * h;
+            glGenBuffers(2, m_pbo[i]);
+            for (int j = 0; j < 2; ++j) {
+                glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo[i][j]);
+                glBufferData(GL_PIXEL_UNPACK_BUFFER, sz, nullptr, GL_STREAM_DRAW);
+            }
+            m_pboStride[i] = strides[i];
+        }
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+        m_pboInited = true;
+    }
+
     glBindTexture(GL_TEXTURE_2D, texture);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, static_cast<GLint>(stride));
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size.width(), size.height(), GL_LUMINANCE, GL_UNSIGNED_BYTE, pixels);
-    doneCurrent();
+
+    int nextIndex = 1 - m_pboIndex;
+
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo[textureType][m_pboIndex]);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size.width(), height, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr);
+
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo[textureType][nextIndex]);
+    void *bufPtr = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, pboSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    if (bufPtr) {
+        if (stride == (quint32)rowBytes) {
+            memcpy(bufPtr, pixels, rowBytes * height);
+        } else {
+            quint8 *dst = static_cast<quint8 *>(bufPtr);
+            for (int y = 0; y < height; ++y) {
+                memcpy(dst + y * stride, pixels + y * stride, rowBytes);
+            }
+        }
+        glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+    }
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 }

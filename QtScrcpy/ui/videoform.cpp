@@ -78,6 +78,13 @@ void VideoForm::initUI()
     m_fpsLabel->setMinimumWidth(100);
     m_fpsLabel->setStyleSheet(R"(QLabel {color: #00FF00;})");
 
+    m_resolutionLabel = new QLabel(m_videoWidget);
+    m_resolutionLabel->setFont(ft);
+    m_resolutionLabel->move(5, 40);
+    m_resolutionLabel->setMinimumWidth(120);
+    m_resolutionLabel->setStyleSheet(R"(QLabel {color: #00CCFF;})");
+    m_resolutionLabel->hide();
+
     setMouseTracking(true);
     m_videoWidget->setMouseTracking(true);
     ui->keepRatioWidget->setMouseTracking(true);
@@ -145,6 +152,9 @@ void VideoForm::showFPS(bool show)
         return;
     }
     m_fpsLabel->setVisible(show);
+    if (m_resolutionLabel) {
+        m_resolutionLabel->setVisible(show);
+    }
 }
 
 void VideoForm::updateRender(int width, int height, uint8_t* dataY, uint8_t* dataU, uint8_t* dataV, int linesizeY, int linesizeU, int linesizeV)
@@ -154,6 +164,13 @@ void VideoForm::updateRender(int width, int height, uint8_t* dataY, uint8_t* dat
             m_loadingWidget->close();
         }
         m_videoWidget->show();
+    }
+
+    if (m_frameSize != QSize(width, height)) {
+        if (m_resolutionLabel) {
+            m_resolutionLabel->setText(QString("%1x%2").arg(width).arg(height));
+            m_resolutionLabel->show();
+        }
     }
 
     updateShowSize(QSize(width, height));

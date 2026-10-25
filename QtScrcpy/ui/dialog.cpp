@@ -2,6 +2,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QKeyEvent>
+#include <QMap>
 #include <QRandomGenerator>
 #include <QTime>
 #include <QTimer>
@@ -160,7 +161,27 @@ void Dialog::initUI()
     ui->maxSizeBox->addItem("1080");
     ui->maxSizeBox->addItem("1280");
     ui->maxSizeBox->addItem("1920");
+    ui->maxSizeBox->addItem("2560");
+    ui->maxSizeBox->addItem("3840");
     ui->maxSizeBox->addItem(tr("original"));
+    ui->maxSizeBox->setEditable(true);
+    ui->maxSizeBox->setValidator(new QIntValidator(0, 65535, this));
+    ui->maxSizeBox->setCompleter(nullptr);
+
+    connect(ui->maxSizeBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int index) {
+        Q_UNUSED(index)
+        static const QMap<int, int> resolutionBitrateMap = {
+            {640, 1}, {720, 2}, {1080, 4}, {1280, 6}, {1920, 8}, {2560, 15}, {3840, 25}
+        };
+        bool ok = false;
+        int maxSize = ui->maxSizeBox->currentText().trimmed().toInt(&ok);
+        if (!ok || maxSize == 0) return;
+        auto it = resolutionBitrateMap.find(maxSize);
+        if (it != resolutionBitrateMap.end()) {
+            ui->bitRateEdit->setText(QString::number(it.value()));
+            ui->bitRateBox->setCurrentText("Mbps");
+        }
+    });
 
     ui->formatBox->addItem("mp4");
     ui->formatBox->addItem("mkv");
@@ -208,7 +229,7 @@ void Dialog::updateBootConfig(bool toView)
             ui->bitRateBox->setCurrentText("Kbps");
         }
 
-        ui->maxSizeBox->setCurrentIndex(config.maxSizeIndex);
+        ui->maxSizeBox->setCurrentIndex(qMin(config.maxSizeIndex, ui->maxSizeBox->count() - 1));
         ui->formatBox->setCurrentIndex(config.recordFormatIndex);
         ui->recordPathEdt->setText(config.recordPath);
         ui->lockOrientationBox->setCurrentIndex(config.lockOrientationIndex);
@@ -337,7 +358,7 @@ void Dialog::on_startServerBtn_clicked()
     qsc::DeviceParams params;
     params.serial = ui->serialBox->currentText().trimmed();
     params.maxSize = videoSize;
-    params.bitRate = getBitRate();
+    params.bitRate = getAutoBitRate(videoSize);
     // on devices with Android >= 10, the capture frame rate can be limited
     params.maxFps = static_cast<quint32>(Config::getInstance().getMaxFps());
     params.closeScreen = ui->closeScreenCheck->isChecked();
@@ -769,6 +790,18 @@ quint32 Dialog::getBitRate()
 {
     return ui->bitRateEdit->text().trimmed().toUInt() *
             (ui->bitRateBox->currentText() == QString("Mbps") ? 1000000 : 1000);
+}
+
+quint32 Dialog::getAutoBitRate(quint16 maxSize)
+{
+    if (maxSize == 0) return 8000000;
+    if (maxSize <= 640) return 1000000;
+    if (maxSize <= 720) return 2000000;
+    if (maxSize <= 1080) return 4000000;
+    if (maxSize <= 1280) return 6000000;
+    if (maxSize <= 1920) return 8000000;
+    if (maxSize <= 2560) return 15000000;
+    return 25000000;
 }
 
 const QString &Dialog::getServerPath()

@@ -79,6 +79,7 @@ private:
     void slotActivated(QSystemTrayIcon::ActivationReason reason);
     int findDeviceFromeSerialBox(bool wifi);
     quint32 getBitRate();
+    quint32 getAutoBitRate(quint16 maxSize);
     const QString &getServerPath();
     void loadIpHistory();
     void saveIpHistory(const QString &ip);

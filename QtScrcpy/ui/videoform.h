@@ -75,6 +75,7 @@ private:
     QPointer<QWidget> m_loadingWidget;
     QPointer<QYUVOpenGLWidget> m_videoWidget;
     QPointer<QLabel> m_fpsLabel;
+    QPointer<QLabel> m_resolutionLabel;
 
     //inside member
     QSize m_frameSize;

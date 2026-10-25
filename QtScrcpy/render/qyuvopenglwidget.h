@@ -30,22 +30,24 @@ private:
     void initShader();
     void initTextures();
     void deInitTextures();
+    void initPBOs();
+    void deInitPBOs();
     void updateTexture(GLuint texture, quint32 textureType, quint8 *pixels, quint32 stride);
 
 private:
-    // 视频帧尺寸
     QSize m_frameSize = { -1, -1 };
     bool m_needUpdate = false;
     bool m_textureInited = false;
 
-    // 顶点缓冲对象(Vertex Buffer Objects, VBO)：默认即为VertexBuffer(GL_ARRAY_BUFFER)类型
     QOpenGLBuffer m_vbo;
-
-    // 着色器程序：编译链接着色器
     QOpenGLShaderProgram m_shaderProgram;
 
-    // YUV纹理，用于生成纹理贴图
     GLuint m_texture[3] = { 0 };
+
+    GLuint m_pbo[3][2] = {{ 0 }};
+    int m_pboIndex = 0;
+    bool m_pboInited = false;
+    quint32 m_pboStride[3] = { 0 };
 };
 
 #endif // QYUVOPENGLWIDGET_H
