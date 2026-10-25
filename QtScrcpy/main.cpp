@@ -1,4 +1,4 @@
-﻿#include <QApplication>
+#include <QApplication>
 #include <QColor>
 #include <QDebug>
 #include <QDir>
@@ -170,6 +170,7 @@ int main(int argc, char *argv[])
         file.close();
     }
 
+    if (qEnvironmentVariableIsEmpty("ADB_MDNS_OPENSCREEN")) { qputenv("ADB_MDNS_OPENSCREEN", "1"); }
     qsc::AdbProcess::setAdbPath(Config::getInstance().getAdbPath());
 
     g_mainDlg = new Dialog {};

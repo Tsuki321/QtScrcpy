@@ -1,6 +1,9 @@
 #include <QCoreApplication>
 #include <QOpenGLTexture>
 #include <QSurfaceFormat>
+#include <QOpenGLContext>
+#include <QVector2D>
+#include <cstring>
 
 #include "qyuvopenglwidget.h"
 
@@ -54,6 +57,8 @@ static const QString s_vertShader = R"(
 // 片段着色器
 static QString s_fragShader = R"(
     varying vec2 textureOut;        // 由顶点着色器传递过来的纹理坐标
+    uniform vec2 texelSize;
+    uniform float sharpness;
     uniform sampler2D textureY;     // uniform 纹理单元，利用纹理单元可以使用多个纹理
     uniform sampler2D textureU;     // sampler2D是2D采样器
     uniform sampler2D textureV;     // 声明yuv三个纹理单元
@@ -70,6 +75,16 @@ static QString s_fragShader = R"(
 
         // 根据指定的纹理textureY和坐标textureOut来采样
         yuv.x = texture2D(textureY, textureOut).r;
+        if (sharpness > 0.0) {
+            float n = texture2D(textureY, textureOut - vec2(0.0, texelSize.y)).r;
+            float s = texture2D(textureY, textureOut + vec2(0.0, texelSize.y)).r;
+            float w = texture2D(textureY, textureOut - vec2(texelSize.x, 0.0)).r;
+            float e = texture2D(textureY, textureOut + vec2(texelSize.x, 0.0)).r;
+            float lo = min(yuv.x, min(min(n, s), min(w, e)));
+            float hi = max(yuv.x, max(max(n, s), max(w, e)));
+            yuv.x = clamp(yuv.x + sharpness * (yuv.x - 0.25 * (n + s + w + e)), lo, hi);
+        }
+
         yuv.y = texture2D(textureU, textureOut).r - 0.5;
         yuv.z = texture2D(textureV, textureOut).r - 0.5;
 
@@ -101,7 +116,6 @@ QYUVOpenGLWidget::~QYUVOpenGLWidget()
     makeCurrent();
     m_vbo.destroy();
     deInitTextures();
-    deInitPBOs();
     doneCurrent();
 }
 
@@ -129,27 +143,6 @@ const QSize &QYUVOpenGLWidget::frameSize()
     return m_frameSize;
 }
 
-void QYUVOpenGLWidget::initPBOs()
-{
-}
-
-void QYUVOpenGLWidget::deInitPBOs()
-{
-    if (!m_pboInited) {
-        return;
-    }
-    if (QOpenGLFunctions::isInitialized(QOpenGLFunctions::d_ptr)) {
-        for (int i = 0; i < 3; ++i) {
-            if (m_pbo[i][0] || m_pbo[i][1]) {
-                glDeleteBuffers(2, m_pbo[i]);
-            }
-        }
-    }
-    memset(m_pbo, 0, sizeof(m_pbo));
-    memset(m_pboStride, 0, sizeof(m_pboStride));
-    m_pboInited = false;
-}
-
 void QYUVOpenGLWidget::updateTextures(quint8 *dataY, quint8 *dataU, quint8 *dataV, quint32 linesizeY, quint32 linesizeU, quint32 linesizeV)
 {
     if (m_textureInited) {
@@ -157,7 +150,6 @@ void QYUVOpenGLWidget::updateTextures(quint8 *dataY, quint8 *dataU, quint8 *data
         updateTexture(m_texture[0], 0, dataY, linesizeY);
         updateTexture(m_texture[1], 1, dataU, linesizeU);
         updateTexture(m_texture[2], 2, dataV, linesizeV);
-        m_pboIndex = 1 - m_pboIndex;
         doneCurrent();
         repaint();
     }
@@ -181,14 +173,16 @@ void QYUVOpenGLWidget::paintGL()
     m_shaderProgram.bind();
 
     if (m_needUpdate) {
-        deInitPBOs();
-        deInitTextures();
+            deInitTextures();
         initTextures();
-        initPBOs();
         m_needUpdate = false;
     }
 
     if (m_textureInited) {
+        const bool upscale = width() * devicePixelRatioF() > m_frameSize.width()
+                || height() * devicePixelRatioF() > m_frameSize.height();
+        m_shaderProgram.setUniformValue("texelSize", QVector2D(1.0f / m_frameSize.width(), 1.0f / m_frameSize.height()));
+        m_shaderProgram.setUniformValue("sharpness", m_sharpening && upscale ? 0.35f : 0.0f);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_texture[0]);
 
@@ -207,7 +201,6 @@ void QYUVOpenGLWidget::paintGL()
 void QYUVOpenGLWidget::resizeGL(int width, int height)
 {
     glViewport(0, 0, width, height);
-    repaint();
 }
 
 void QYUVOpenGLWidget::initShader()
@@ -287,54 +280,39 @@ void QYUVOpenGLWidget::deInitTextures()
 
 void QYUVOpenGLWidget::updateTexture(GLuint texture, quint32 textureType, quint8 *pixels, quint32 stride)
 {
-    if (!pixels)
+    if (!pixels) {
         return;
-
-    QSize size = 0 == textureType ? m_frameSize : m_frameSize / 2;
-    int rowBytes = size.width();
-    int height = size.height();
-    int pboSize = stride * height;
-
-    if (m_pboInited && m_pboStride[textureType] != stride) {
-        deInitPBOs();
     }
-
-    if (!m_pboInited) {
-        quint32 strides[3] = { stride, stride, stride };
-        for (int i = 0; i < 3; ++i) {
-            int h = 0 == i ? m_frameSize.height() : m_frameSize.height() / 2;
-            int sz = strides[i] * h;
-            glGenBuffers(2, m_pbo[i]);
-            for (int j = 0; j < 2; ++j) {
-                glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo[i][j]);
-                glBufferData(GL_PIXEL_UNPACK_BUFFER, sz, nullptr, GL_STREAM_DRAW);
-            }
-            m_pboStride[i] = strides[i];
-        }
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-        m_pboInited = true;
+    const QSize plane = textureType == 0 ? m_frameSize : m_frameSize / 2;
+    if (stride < static_cast<quint32>(plane.width())) {
+        return;
     }
-
     glBindTexture(GL_TEXTURE_2D, texture);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, static_cast<GLint>(stride));
-
-    int nextIndex = 1 - m_pboIndex;
-
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo[textureType][m_pboIndex]);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size.width(), height, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr);
-
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbo[textureType][nextIndex]);
-    void *bufPtr = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, pboSize, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-    if (bufPtr) {
-        if (stride == (quint32)rowBytes) {
-            memcpy(bufPtr, pixels, rowBytes * height);
-        } else {
-            quint8 *dst = static_cast<quint8 *>(bufPtr);
-            for (int y = 0; y < height; ++y) {
-                memcpy(dst + y * stride, pixels + y * stride, rowBytes);
-            }
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    // Desktop GL and GLES 3 support padded FFmpeg planes in a single upload.
+    // GLES 2 uses tightly packed scratch memory only when padding is present.
+    const bool rowLength = !context()->isOpenGLES() || context()->format().majorVersion() >= 3;
+    if (rowLength) {
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, static_cast<GLint>(stride));
+    } else if (stride != static_cast<quint32>(plane.width())) {
+        m_packedPlane.resize(plane.width() * plane.height());
+        for (int y = 0; y < plane.height(); ++y) {
+            std::memcpy(m_packedPlane.data() + y * plane.width(), pixels + y * stride,
+                        static_cast<size_t>(plane.width()));
         }
-        glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+        pixels = reinterpret_cast<quint8 *>(m_packedPlane.data());
     }
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+    // Upload this frame, never the previous (or uninitialized) PBO.
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, plane.width(), plane.height(),
+                    GL_LUMINANCE, GL_UNSIGNED_BYTE, pixels);
+    if (rowLength) {
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    }
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+}
+
+void QYUVOpenGLWidget::setSharpening(bool enabled)
+{
+    m_sharpening = enabled;
+    update();
 }

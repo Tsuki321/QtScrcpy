@@ -1,4 +1,4 @@
-﻿#ifndef DIALOG_H
+#ifndef DIALOG_H
 #define DIALOG_H
 
 #include <QWidget>
@@ -30,6 +30,7 @@ class QSpinBox;
 class Dialog : public QWidget
 {
     Q_OBJECT
+    bool m_wirelessPreset = false;
 
 public:
     explicit Dialog(QWidget *parent = 0);

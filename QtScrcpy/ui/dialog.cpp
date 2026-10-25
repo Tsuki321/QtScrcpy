@@ -33,6 +33,7 @@
 
 #include "config.h"
 #include "dialog.h"
+#include "wirelesspanel.h"
 #include "ui_dialog.h"
 #include "videoform.h"
 #include "../groupcontroller/groupcontroller.h"
@@ -350,6 +351,18 @@ void Dialog::initUI()
     advancedDisplayLayout->addStretch();
     initAdvancedConfigUi(advancedConfigPage);
     configTabs->addTab(startConfigPage, tr("Start Config"));
+    auto *wireless = new WirelessPanel(configTabs);
+    configTabs->addTab(wireless, tr("Wireless pairing"));
+    connect(wireless, &WirelessPanel::devicesChanged, this, [this]() {
+        if (!m_adb.isRuning()) { on_updateDevice_clicked(); }
+    });
+    auto *latencyPreset = new QPushButton(tr("Wireless 720p / 60 FPS preset"), startConfigPage);
+    startConfigPage->layout()->addWidget(latencyPreset);
+    latencyPreset->setToolTip(tr("Encode at a 1280-pixel longest edge and scale to your window. Ctrl+U toggles light sharpening; Ctrl+E edits mappings."));
+    connect(latencyPreset, &QPushButton::clicked, this, [this]() {
+        ui->maxSizeBox->setCurrentText("1280");
+        m_wirelessPreset = true;
+    });
     configTabs->addTab(advancedDisplayPage, tr("Advanced Display"));
     configTabs->addTab(advancedConfigPage, tr("Advanced Config"));
     configTabs->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
@@ -852,7 +865,8 @@ void Dialog::on_startServerBtn_clicked()
     params.maxSize = videoSize;
     params.bitRate = getAutoBitRate(videoSize);
     // on devices with Android >= 10, the capture frame rate can be limited
-    params.maxFps = static_cast<quint32>(Config::getInstance().getMaxFps());
+    params.maxFps = m_wirelessPreset ? 60 : static_cast<quint32>(Config::getInstance().getMaxFps());
+    if (m_wirelessPreset) { params.bitRate = 4000000; }
     params.videoSource = static_cast<qsc::VideoSource>(ui->videoSourceBox->currentIndex());
     params.cameraFacing = ui->cameraFacingBox->currentIndex() == 1
             ? qsc::CAMERA_FACING_FRONT
@@ -907,6 +921,7 @@ void Dialog::on_startServerBtn_clicked()
         params.codecOptions = Config::getInstance().getCodecOptions();
         params.codecName = Config::getInstance().getCodecName();
     }
+    if (m_wirelessPreset) { params.bitRate = 4000000; params.codecOptions.clear(); params.codecName.clear(); }
     params.scid = QRandomGenerator::global()->bounded(1, 10000) & 0x7FFFFFFF;
     params.decodeMode = ui->decodeModeBox->currentIndex();
     // Disabled widgets may remain checked from persisted settings. Advanced

@@ -1,0 +1,80 @@
+name: Wireless validation
+on:
+  push:
+    branches: [wireless-latency]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: validation-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          arch: win64_msvc2019_64
+          cache: true
+      - name: Build application and tests
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DQTSCRCPY_BUILD_TESTS=ON
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build --config Release --parallel 2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          windeployqt --release --no-translations output/x64/Release/QtScrcpy.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Regression tests and measured microbenchmarks
+        shell: pwsh
+        env:
+          QT_OPENGL: software
+        run: |
+          ctest --test-dir build -C Release --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-tests-and-benchmarks
+          path: |
+            build/tests/test-results.xml
+            build/Testing/Temporary/LastTest.log
+            build/tests/benchmark-results.xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QtScrcpy-wireless-windows-x64
+          path: output/x64/Release/
+  linux:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    env:
+      LIBGL_ALWAYS_SOFTWARE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qtbase5-dev qtmultimedia5-dev libqt5x11extras5-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libgl1-mesa-dev libxext-dev xvfb ninja-build
+      - name: Build application and tests
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DQTSCRCPY_BUILD_TESTS=ON
+          cmake --build build --parallel 2
+      - name: Regression tests and measured microbenchmarks
+        run: |
+          xvfb-run -a -s '-screen 0 1920x1080x24' ctest --test-dir build --output-on-failure
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-tests-and-benchmarks
+          path: |
+            build/tests/test-results.xml
+            build/Testing/Temporary/LastTest.log
+            build/tests/benchmark-results.xml

@@ -173,6 +173,12 @@ source_group(audio FILES ${QC_AUDIO_SOURCES})
 
 # ui
 set(QC_UI_SOURCES
+    ui/wirelessdiscovery.h
+    ui/wirelesspanel.h
+    ui/wirelesspanel.cpp
+    ui/keymapdocument.h
+    ui/keymapeditor.h
+    ui/keymapeditor.cpp
     ui/toolform.h
     ui/toolform.cpp
     ui/toolform.ui

@@ -2,3 +2,9 @@
 project(all)
 
 add_subdirectory(QtScrcpy)
+
+option(QTSCRCPY_BUILD_TESTS "Build regression tests and microbenchmarks" OFF)
+if(QTSCRCPY_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

@@ -14,6 +14,7 @@ public:
     explicit QYUVOpenGLWidget(QWidget *parent = nullptr);
     virtual ~QYUVOpenGLWidget() override;
 
+    void setSharpening(bool enabled);
     QSize minimumSizeHint() const override;
     QSize sizeHint() const override;
 
@@ -30,8 +31,6 @@ private:
     void initShader();
     void initTextures();
     void deInitTextures();
-    void initPBOs();
-    void deInitPBOs();
     void updateTexture(GLuint texture, quint32 textureType, quint8 *pixels, quint32 stride);
 
 private:
@@ -44,10 +43,9 @@ private:
 
     GLuint m_texture[3] = { 0 };
 
-    GLuint m_pbo[3][2] = {{ 0 }};
-    int m_pboIndex = 0;
-    bool m_pboInited = false;
-    quint32 m_pboStride[3] = { 0 };
+    QByteArray m_packedPlane;
+    bool m_sharpening = false;
+
 };
 
 #endif // QYUVOPENGLWIDGET_H

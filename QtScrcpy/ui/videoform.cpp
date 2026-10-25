@@ -25,6 +25,11 @@
 #include "mousetap/mousetap.h"
 #include "ui_videoform.h"
 #include "videoform.h"
+#include "keymapeditor.h"
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QMetaEnum>
+#include <QToolButton>
 
 #ifdef Q_OS_MACOS
 #include "metalvideowindow.h"
@@ -43,6 +48,54 @@ VideoForm::VideoForm(bool framelessWindow, bool skin, bool showToolbar, int deco
     });
     initUI();
     installShortcut();
+    auto *editShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_E), this);
+    auto *editButton = new QToolButton(videoWidget());
+    editButton->setText(tr("Map"));
+    editButton->setToolTip(tr("Edit mappings (Ctrl+E). Ctrl+U toggles light sharpening."));
+    editButton->move(5, 54);
+    editButton->show();
+    const auto openEditor = [this]() {
+        if (m_keymapEditor && m_keymapEditor->isVisible()) { return; }
+        auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
+        if (device) { device->updateScript(QString()); }
+        grabCursor(false);
+        if (!m_keymapEditor) {
+            m_keymapEditor = new KeyMapEditor(videoWidget());
+            connect(m_keymapEditor, &KeyMapEditor::applied, this, [this](const QString &script) {
+                auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
+                if (!device) { return; }
+                device->updateScript(script);
+                const auto key = QJsonDocument::fromJson(script.toUtf8()).object().value("switchKey").toString().toLatin1();
+                bool ok = false;
+                int value = QMetaEnum::fromType<Qt::Key>().keyToValue(key.constData(), &ok);
+                if (ok) {
+                    QKeyEvent down(QEvent::KeyPress, value, Qt::NoModifier);
+                    QKeyEvent up(QEvent::KeyRelease, value, Qt::NoModifier);
+                    device->keyEvent(&down, m_frameSize, videoWidget()->size());
+                    device->keyEvent(&up, m_frameSize, videoWidget()->size());
+                } else {
+                    value = QMetaEnum::fromType<Qt::MouseButtons>().keyToValue(key.constData(), &ok);
+                    if (ok) {
+                        QMouseEvent down(QEvent::MouseButtonPress, QPointF(0, 0), static_cast<Qt::MouseButton>(value), static_cast<Qt::MouseButton>(value), Qt::NoModifier);
+                        device->mouseEvent(&down, m_frameSize, videoWidget()->size());
+                    }
+                }
+            });
+            connect(m_keymapEditor, &KeyMapEditor::editingFinished, this, [this]() { setFocus(); });
+        }
+        m_keymapEditor->open();
+    };
+    connect(editShortcut, &QShortcut::activated, this, openEditor);
+    connect(editButton, &QToolButton::clicked, this, openEditor);
+    auto *upscaleShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_U), this);
+    connect(upscaleShortcut, &QShortcut::activated, this, [this]() {
+        m_lightSharpening = !m_lightSharpening;
+        if (m_videoWidget) { m_videoWidget->setSharpening(m_lightSharpening); }
+        if (m_resolutionLabel) {
+            m_resolutionLabel->setText(QString("%1x%2 - %3").arg(m_frameSize.width()).arg(m_frameSize.height())
+                .arg(m_lightSharpening ? tr("light sharpening") : tr("bilinear scaling")));
+        }
+    });
     updateShowSize(size());
     bool vertical = size().height() > size().width();
     this->show_toolbar = showToolbar;

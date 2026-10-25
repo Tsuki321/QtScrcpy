@@ -14,12 +14,15 @@ namespace Ui
 
 class ToolForm;
 class FileHandler;
+class KeyMapEditor;
 class QYUVOpenGLWidget;
 class QLabel;
 class MetalVideoWidget;
 class VideoForm : public QWidget, public qsc::DeviceObserver
 {
     Q_OBJECT
+    KeyMapEditor *m_keymapEditor = nullptr;
+    bool m_lightSharpening = false;
 public:
     explicit VideoForm(bool framelessWindow = false, bool skin = true, bool showToolBar = true, int decodeMode = 0, QWidget *parent = 0);
     ~VideoForm();
