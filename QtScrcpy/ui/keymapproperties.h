@@ -192,6 +192,9 @@ public:
                     if (action == 1) { steps->removeRow(selected); return; }
                     const int other = selected + (action == 2 ? -1 : 1);
                     if (other < 0 || other >= steps->rowCount()) { return; }
+                    const auto metadata = steps->item(selected, 0)->data(Qt::UserRole);
+                    steps->item(selected, 0)->setData(Qt::UserRole, steps->item(other, 0)->data(Qt::UserRole));
+                    steps->item(other, 0)->setData(Qt::UserRole, metadata);
                     for (int col = 0; col < 3; ++col) {
                         auto *a = static_cast<QDoubleSpinBox *>(steps->cellWidget(selected, col));
                         auto *b = static_cast<QDoubleSpinBox *>(steps->cellWidget(other, col));

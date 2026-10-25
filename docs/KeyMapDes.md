@@ -10,7 +10,7 @@ Open **Key mapping** from the device window toolbar. Editing temporarily release
 active fingers and keys. The editor supports all mapping types below and Android
 key events; existing profiles can be loaded and edited directly.
 
-1. Choose a mapping type and click **Add**, or double-click a blank area of the
+1. Choose a mapping type and click **Add**, or click a blank area of the
    video to place it. Use **Edit / Bind** or double-click a marker to change it.
 2. Enter a Qt key name or click **Capture** and press a key or mouse button.
    Escape and Tab can be captured; use Cancel to dismiss capture.

@@ -31,6 +31,7 @@ add_executable(qtscrcpy_keymap_tests test_keymap.cpp
     ../QtScrcpy/ui/keymapeditor.cpp ../QtScrcpy/ui/keymapeditor.h
     ../QtScrcpy/ui/keymapproperties.h ../QtScrcpy/ui/keymapdocument.h)
 target_include_directories(qtscrcpy_keymap_tests PRIVATE ../QtScrcpy/ui
+    ${CORE}/src/common
     ${CORE}/src/device/controller ${CORE}/src/device/controller/inputconvert
     ${CORE}/src/device/controller/inputconvert/keymap ${CORE}/src/device/android)
 target_link_libraries(qtscrcpy_keymap_tests PRIVATE QtScrcpyCore Qt${QT_DESIRED_VERSION}::Test Qt${QT_DESIRED_VERSION}::Widgets)

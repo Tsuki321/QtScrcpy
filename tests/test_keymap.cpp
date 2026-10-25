@@ -293,6 +293,13 @@ private slots:
         const auto result = properties.result();
         QCOMPARE(result.value("extension").toString(), QString("preserve me"));
         QCOMPARE(result.value("clickNodes").toArray(), steps);
+        properties.steps->selectRow(0);
+        for (auto *button : properties.findChildren<QPushButton *>()) {
+            if (button->text() == "Move down") { button->click(); break; }
+        }
+        const auto reordered = properties.result().value("clickNodes").toArray();
+        QCOMPARE(reordered[0].toObject(), steps[1].toObject());
+        QCOMPARE(reordered[1].toObject(), steps[0].toObject());
         KeyMapUi::Capture capture(nullptr);
         QKeyEvent escape(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
         QApplication::sendEvent(&capture, &escape);
