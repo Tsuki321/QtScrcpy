@@ -1,8 +1,11 @@
 ﻿#include <QApplication>
+#include <QColor>
 #include <QDebug>
+#include <QDir>
 #include <QFile>
-#ifdef Q_OS_LINUX
 #include <QFileInfo>
+#include <QPalette>
+#ifdef Q_OS_LINUX
 #include <QIcon>
 #endif
 #include <QSurfaceFormat>
@@ -14,6 +17,7 @@
 #include "config.h"
 #include "dialog.h"
 #include "mousetap/mousetap.h"
+#include "singleinstance.h"
 
 static Dialog *g_mainDlg = Q_NULLPTR;
 static QtMessageHandler g_oldMessageHandler = Q_NULLPTR;
@@ -25,19 +29,42 @@ QtMsgType covertLogLevel(const QString &logLevel);
 
 int main(int argc, char *argv[])
 {
+    QCoreApplication::setOrganizationName("QtScrcpy");
+    QCoreApplication::setApplicationName("QtScrcpy");
+
+    const QString executableDir = QFileInfo(QString::fromLocal8Bit(argv[0])).absolutePath();
+#ifdef Q_OS_MACOS
+    const QString repositoryRoot = QDir(executableDir).absoluteFilePath("../../../../../../");
+#else
+    const QString repositoryRoot = QDir(executableDir).absoluteFilePath("../../..");
+#endif
+    const QDir repositoryDir(repositoryRoot);
+    const QString defaultKeymapPath = repositoryDir.exists("keymap")
+        ? repositoryDir.filePath("keymap")
+        : QDir(executableDir).filePath("keymap");
+    const QString defaultConfigPath = QFileInfo(repositoryDir.filePath("config/config.ini")).isFile()
+        ? repositoryDir.filePath("config")
+        : QDir(executableDir).filePath("config");
+
+    // Keep packaged defaults separate from mutable user data. Development
+    // builds use the repository templates, while release packages use files
+    // beside the executable. AppImage AppRun may override these paths.
+    if (qgetenv("QTSCRCPY_DEFAULT_KEYMAP_PATH").isEmpty()) {
+        qputenv("QTSCRCPY_DEFAULT_KEYMAP_PATH", defaultKeymapPath.toLocal8Bit());
+    }
+    if (qgetenv("QTSCRCPY_DEFAULT_CONFIG_PATH").isEmpty()) {
+        qputenv("QTSCRCPY_DEFAULT_CONFIG_PATH", defaultConfigPath.toLocal8Bit());
+    }
+
     // set env
 #ifdef Q_OS_WIN32
     qputenv("QTSCRCPY_ADB_PATH", "../../../QtScrcpy/QtScrcpyCore/src/third_party/adb/win/adb.exe");
     qputenv("QTSCRCPY_SERVER_PATH", "../../../QtScrcpy/QtScrcpyCore/src/third_party/scrcpy-server");
-    qputenv("QTSCRCPY_KEYMAP_PATH", "../../../keymap");
-    qputenv("QTSCRCPY_CONFIG_PATH", "../../../config");
 #endif
 
-#ifdef Q_OS_OSX
+#ifdef Q_OS_MACOS
     qputenv("QTSCRCPY_ADB_PATH", "../../../../../../QtScrcpy/QtScrcpyCore/src/third_party/adb/mac/adb");
     qputenv("QTSCRCPY_SERVER_PATH", "../../../../../../QtScrcpy/QtScrcpyCore/src/third_party/scrcpy-server");
-    qputenv("QTSCRCPY_KEYMAP_PATH", "../../../../../../keymap");
-    qputenv("QTSCRCPY_CONFIG_PATH", "../../../../../../config");
 #endif
 
 #ifdef Q_OS_LINUX
@@ -47,12 +74,6 @@ int main(int argc, char *argv[])
     }
     if (qgetenv("QTSCRCPY_SERVER_PATH").isEmpty()) {
         qputenv("QTSCRCPY_SERVER_PATH", "../../../QtScrcpy/QtScrcpyCore/src/third_party/scrcpy-server");
-    }
-    if (qgetenv("QTSCRCPY_KEYMAP_PATH").isEmpty()) {
-        qputenv("QTSCRCPY_KEYMAP_PATH", "../../../keymap");
-    }
-    if (qgetenv("QTSCRCPY_CONFIG_PATH").isEmpty()) {
-        qputenv("QTSCRCPY_CONFIG_PATH", "../../../config");
     }
 #endif
 
@@ -93,6 +114,14 @@ int main(int argc, char *argv[])
     g_oldMessageHandler = qInstallMessageHandler(myMessageOutput);
     QApplication a(argc, argv);
 
+    // Only one QtScrcpy per user. If one is already running (possibly hidden in
+    // the system tray), ask it to show its window and exit.
+    SingleInstance singleInstance(QStringLiteral("QtScrcpy"));
+    if (!singleInstance.isPrimary()) {
+        singleInstance.notifyPrimary();
+        return 0;
+    }
+
     // Set application icon for Linux (taskbar icon)
 #ifdef Q_OS_LINUX
     // Load icon from Qt resource (logo.png is included in res.qrc)
@@ -115,7 +144,7 @@ int main(int argc, char *argv[])
     }
 
     installTranslator();
-#if defined(Q_OS_WIN32) || defined(Q_OS_OSX)
+#if defined(Q_OS_WIN32) || defined(Q_OS_MACOS)
     MouseTap::getInstance()->initMouseEventTap();
 #endif
 
@@ -123,8 +152,20 @@ int main(int argc, char *argv[])
     QFile file(":/qss/psblack.css");
     if (file.open(QFile::ReadOnly)) {
         QString qss = QLatin1String(file.readAll());
-        QString paletteColor = qss.mid(20, 7);
-        qApp->setPalette(QPalette(QColor(paletteColor)));
+        QPalette palette;
+        palette.setColor(QPalette::Window, QColor("#1e1e1e"));
+        palette.setColor(QPalette::WindowText, QColor("#ffffff"));
+        palette.setColor(QPalette::Base, QColor("#252525"));
+        palette.setColor(QPalette::AlternateBase, QColor("#2d2d2d"));
+        palette.setColor(QPalette::Text, QColor("#ffffff"));
+        palette.setColor(QPalette::Button, QColor("#252525"));
+        palette.setColor(QPalette::ButtonText, QColor("#ffffff"));
+        palette.setColor(QPalette::Highlight, QColor("#0078d4"));
+        palette.setColor(QPalette::HighlightedText, QColor("#ffffff"));
+        palette.setColor(QPalette::Disabled, QPalette::Text, QColor("#6b6b6b"));
+        palette.setColor(QPalette::Disabled, QPalette::ButtonText, QColor("#6b6b6b"));
+        palette.setColor(QPalette::Disabled, QPalette::Base, QColor("#2d2d2d"));
+        qApp->setPalette(palette);
         qApp->setStyleSheet(qss);
         file.close();
     }
@@ -133,6 +174,7 @@ int main(int argc, char *argv[])
 
     g_mainDlg = new Dialog {};
     g_mainDlg->show();
+    QObject::connect(&singleInstance, &SingleInstance::activateRequested, g_mainDlg, &Dialog::bringToFront);
 
     qInfo() << QObject::tr("This software is completely open source and free. Use it at your own risk. You can download it at the "
             "following address:");
@@ -152,7 +194,7 @@ int main(int argc, char *argv[])
     int ret = a.exec();
     delete g_mainDlg;
 
-#if defined(Q_OS_WIN32) || defined(Q_OS_OSX)
+#if defined(Q_OS_WIN32) || defined(Q_OS_MACOS)
     MouseTap::getInstance()->quitMouseEventTap();
 #endif
     return ret;
@@ -170,6 +212,8 @@ void installTranslator()
         language = QLocale::English;
     } else if (Config::getInstance().getLanguage() == "ja_JP") {
         language = QLocale::Japanese;
+    } else if (Config::getInstance().getLanguage() == "ko_KR") {
+        language = QLocale::Korean;
     }
 
     QString languagePath = ":/i18n/";
@@ -179,6 +223,9 @@ void installTranslator()
         break;
     case QLocale::Japanese:
         languagePath += "ja_JP.qm";
+        break;
+    case QLocale::Korean:
+        languagePath += "ko_KR.qm";
         break;
     case QLocale::English:
     default:

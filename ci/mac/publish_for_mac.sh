@@ -64,12 +64,19 @@ cp -r $keymap_path $publish_path/QtScrcpy.app/Contents/MacOS
 # cp -r $config_path $publish_path/QtScrcpy.app/Contents/MacOS
 
 # 添加qt依赖包
-macdeployqt $publish_path/QtScrcpy.app
+app_path=$publish_path/QtScrcpy.app
+macdeployqt "$app_path"
+
+if [ ! -f "$app_path/Contents/Frameworks/QtCore.framework/QtCore" ]; then
+    echo "error: Qt frameworks were not deployed"
+    cd $old_cd
+    exit 1
+fi
 
 # 删除多余qt依赖包
 
 # PlugIns
-rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/iconengines
+# Keep the SVG icon engine: stylesheet resources use SVG arrow icons.
 # 截图功能需要libqjpeg.dylib
 rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqgif.dylib
 rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqicns.dylib
@@ -84,7 +91,6 @@ rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqwebp.dylib
 rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/virtualkeyboard
 rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/printsupport
 rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/platforminputcontexts
-rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/iconengines
 rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/bearer
 
 # Frameworks
@@ -94,6 +100,47 @@ rm -rf $publish_path/Contents/Frameworks/QtSvg.framework
 # qml
 rm -rf $publish_path/QtScrcpy.app/Contents/Frameworks/QtQml.framework
 rm -rf $publish_path/QtScrcpy.app/Contents/Frameworks/QtQuick.framework
+
+# Create an ad-hoc signature for every executable component after macdeployqt
+# and the size-reduction cleanup are finished. This makes the final bundle
+# internally consistent without requiring an Apple Developer certificate.
+# It does not replace Developer ID signing/notarization, so Gatekeeper may
+# still require the user to explicitly allow an Internet-downloaded app.
+echo "ad-hoc code signing macOS app bundle"
+frameworks_path=$app_path/Contents/Frameworks
+
+# Remove links targeting plugins deleted above; a dangling link prevents
+# codesign --strict from sealing the outer bundle.
+while IFS= read -r -d '' link; do
+    if [ ! -e "$link" ]; then
+        rm -f "$link"
+    fi
+done < <(find "$app_path" -type l -print0)
+
+# Sign individual Mach-O files first, including adb and Qt plugin dylibs.
+# Then seal framework bundles and finally the outer application bundle.
+while IFS= read -r -d '' binary; do
+    if file -b "$binary" | grep -q '^Mach-O'; then
+        codesign --force --sign - --timestamp=none "$binary"
+    fi
+done < <(find "$app_path/Contents" -type f -print0)
+
+if [ -d "$frameworks_path" ]; then
+    while IFS= read -r -d '' framework; do
+        codesign --force --sign - --timestamp=none --deep "$framework"
+    done < <(find "$frameworks_path" -type d -name '*.framework' -print0)
+fi
+
+codesign --force --sign - --timestamp=none --deep "$app_path"
+if ! codesign --verify --deep --strict --verbose=2 "$app_path"; then
+    echo "ad-hoc code signature verification failed"
+    cd $old_cd
+    exit 1
+fi
+
+echo "macOS package size"
+du -sh "$app_path" "$frameworks_path"
+find "$frameworks_path" -mindepth 1 -maxdepth 1 -type d -name '*.framework' -exec du -sh {} \; | sort -h
 
 echo
 echo

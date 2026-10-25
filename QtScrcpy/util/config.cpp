@@ -2,11 +2,11 @@
 #include <QFileInfo>
 #include <QSettings>
 #include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QStandardPaths>
 
 #include "config.h"
-#ifdef Q_OS_OSX
-#include "path.h"
-#endif
 
 #define GROUP_COMMON "common"
 
@@ -99,6 +99,24 @@
 #define COMMON_SHOW_TOOLBAR_KEY "showToolbar"
 #define COMMON_SHOW_TOOLBAR_DEF true
 
+#define COMMON_QUIT_ON_CLOSE_KEY "QuitOnClose"
+#define COMMON_QUIT_ON_CLOSE_DEF false
+
+#define COMMON_DECODE_MODE_KEY "DecodeMode"
+#define COMMON_DECODE_MODE_DEF 0
+
+#define COMMON_CODEC_MODE_INDEX_KEY "CodecModeIndex"
+#define COMMON_CODEC_MODE_INDEX_DEF 0
+
+#define COMMON_PRESET_LEVEL_KEY "PresetLevel"
+#define COMMON_PRESET_LEVEL_DEF 1
+
+#define COMMON_VIDEO_SOURCE_KEY "VideoSource"
+#define COMMON_VIDEO_SOURCE_DEF 0
+
+#define COMMON_CAMERA_FACING_KEY "CameraFacing"
+#define COMMON_CAMERA_FACING_DEF 0
+
 // device config
 #define SERIAL_WINDOW_RECT_KEY_X "WindowRectX"
 #define SERIAL_WINDOW_RECT_KEY_Y "WindowRectY"
@@ -122,6 +140,7 @@ QString Config::s_configPath = "";
 
 Config::Config(QObject *parent) : QObject(parent)
 {
+    initializeConfig();
     m_settings = new QSettings(getConfigPath() + "/config.ini", QSettings::IniFormat);
     m_userData = new QSettings(getConfigPath() + "/userdata.ini", QSettings::IniFormat);
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
@@ -142,21 +161,59 @@ const QString &Config::getConfigPath()
 {
     if (s_configPath.isEmpty()) {
         s_configPath = QString::fromLocal8Bit(qgetenv("QTSCRCPY_CONFIG_PATH"));
-        QFileInfo fileInfo(s_configPath);
-        if (s_configPath.isEmpty() || !fileInfo.isDir()) {
-            // default application dir
-            // mac系统当从finder打开app时，默认工作目录不再是可执行程序的目录了，而是"/"
-            // 而Qt的获取工作目录的api都依赖QCoreApplication的初始化，所以使用mac api获取当前目录
-#ifdef Q_OS_OSX
-            // get */QtScrcpy.app path
-            s_configPath = Path::GetCurrentPath();
-            s_configPath += "/Contents/MacOS/config";
-#else
-            s_configPath = "config";
-#endif
+        if (s_configPath.isEmpty()) {
+            s_configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/config";
+        }
+        if (!QDir().mkpath(s_configPath)) {
+            qWarning() << "Failed to create configuration directory:" << s_configPath;
         }
     }
     return s_configPath;
+}
+
+QString Config::getDefaultConfigPath() const
+{
+    return QString::fromLocal8Bit(qgetenv("QTSCRCPY_DEFAULT_CONFIG_PATH"));
+}
+
+void Config::initializeConfig()
+{
+    const QString configPath = getConfigPath();
+    const QString configFile = configPath + "/config.ini";
+    const QString defaultConfigFile = getDefaultConfigPath() + "/config.ini";
+
+    // The application bundle is read-only in AppImage and should be treated as
+    // read-only on macOS. Seed a user-owned copy only once, preserving changes
+    // across upgrades. If a package lacks the template, create a complete
+    // default config so the directory always contains config.ini.
+    if (!QFileInfo::exists(configFile)) {
+        if (QFileInfo(defaultConfigFile).isFile() && !QFile::copy(defaultConfigFile, configFile)) {
+            qWarning() << "Failed to copy default configuration to:" << configFile;
+        }
+        if (!QFileInfo::exists(configFile)) {
+            QSettings defaults(configFile, QSettings::IniFormat);
+#if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
+            defaults.setIniCodec("UTF-8");
+#endif
+            defaults.beginGroup(GROUP_COMMON);
+            defaults.setValue(COMMON_LANGUAGE_KEY, COMMON_LANGUAGE_DEF);
+            defaults.setValue(COMMON_TITLE_KEY, COMMON_TITLE_DEF);
+            defaults.setValue(COMMON_PUSHFILE_KEY, COMMON_PUSHFILE_DEF);
+            defaults.setValue(COMMON_MAX_FPS_KEY, COMMON_MAX_FPS_DEF);
+            defaults.setValue(COMMON_RENDER_EXPIRED_FRAMES_KEY, COMMON_RENDER_EXPIRED_FRAMES_DEF);
+            defaults.setValue(COMMON_DESKTOP_OPENGL_KEY, COMMON_DESKTOP_OPENGL_DEF);
+            defaults.setValue(COMMON_SERVER_PATH_KEY, COMMON_SERVER_PATH_DEF);
+            defaults.setValue(COMMON_ADB_PATH_KEY, COMMON_ADB_PATH_DEF);
+            defaults.setValue(COMMON_CODEC_OPTIONS_KEY, COMMON_CODEC_OPTIONS_DEF);
+            defaults.setValue(COMMON_CODEC_NAME_KEY, COMMON_CODEC_NAME_DEF);
+            defaults.setValue(COMMON_LOG_LEVEL_KEY, COMMON_LOG_LEVEL_DEF);
+            defaults.endGroup();
+            defaults.sync();
+            if (defaults.status() != QSettings::NoError) {
+                qWarning() << "Failed to create default configuration:" << configFile;
+            }
+        }
+    }
 }
 
 void Config::setUserBootConfig(const UserBootConfig &config)
@@ -178,6 +235,23 @@ void Config::setUserBootConfig(const UserBootConfig &config)
     m_userData->setValue(COMMON_SIMPLE_MODE_KEY, config.simpleMode);
     m_userData->setValue(COMMON_AUTO_UPDATE_DEVICE_KEY, config.autoUpdateDevice);
     m_userData->setValue(COMMON_SHOW_TOOLBAR_KEY, config.showToolbar);
+    m_userData->setValue(COMMON_QUIT_ON_CLOSE_KEY, config.quitOnClose);
+    m_userData->setValue(COMMON_DECODE_MODE_KEY, config.decodeMode);
+    m_userData->setValue(COMMON_CODEC_MODE_INDEX_KEY, config.codecModeIndex);
+    m_userData->setValue(COMMON_PRESET_LEVEL_KEY, config.presetLevel);
+    m_userData->setValue(COMMON_VIDEO_SOURCE_KEY, config.videoSource);
+    m_userData->setValue(COMMON_CAMERA_FACING_KEY, config.cameraFacing);
+    m_userData->setValue("AdvancedDisplay", config.advancedDisplay);
+    m_userData->setValue("DisplayMode", config.displayMode);
+    m_userData->setValue("DisplayId", config.displayId);
+    m_userData->setValue("NewDisplay", config.newDisplay);
+    m_userData->setValue("Crop", config.crop);
+    m_userData->setValue("FlexDisplay", config.flexDisplay);
+    m_userData->setValue("DisplayImePolicy", config.displayImePolicy);
+    m_userData->setValue("VdSystemDecorations", config.vdSystemDecorations);
+    m_userData->setValue("VdDestroyContent", config.vdDestroyContent);
+    m_userData->setValue("KeepActive", config.keepActive);
+    m_userData->setValue("StartApp", config.startApp);
     m_userData->endGroup();
     m_userData->sync();
 }
@@ -202,6 +276,28 @@ UserBootConfig Config::getUserBootConfig()
     config.simpleMode = m_userData->value(COMMON_SIMPLE_MODE_KEY, COMMON_SIMPLE_MODE_DEF).toBool();
     config.autoUpdateDevice = m_userData->value(COMMON_AUTO_UPDATE_DEVICE_KEY, COMMON_AUTO_UPDATE_DEVICE_DEF).toBool();
     config.showToolbar =m_userData->value(COMMON_SHOW_TOOLBAR_KEY,COMMON_SHOW_TOOLBAR_DEF).toBool();
+    config.quitOnClose = m_userData->value(COMMON_QUIT_ON_CLOSE_KEY, COMMON_QUIT_ON_CLOSE_DEF).toBool();
+    config.decodeMode = m_userData->value(COMMON_DECODE_MODE_KEY, COMMON_DECODE_MODE_DEF).toInt();
+    config.codecModeIndex = m_userData->value(COMMON_CODEC_MODE_INDEX_KEY, COMMON_CODEC_MODE_INDEX_DEF).toInt();
+    // PresetLevel replaced the MTK-specific MtkLevel key; fall back to the old
+    // key so users who already picked a tier keep their selection.
+    config.presetLevel = m_userData->value(COMMON_PRESET_LEVEL_KEY, -1).toInt();
+    if (config.presetLevel < 0) {
+        config.presetLevel = m_userData->value("MtkLevel", COMMON_PRESET_LEVEL_DEF).toInt();
+    }
+    config.videoSource = m_userData->value(COMMON_VIDEO_SOURCE_KEY, COMMON_VIDEO_SOURCE_DEF).toInt();
+    config.cameraFacing = m_userData->value(COMMON_CAMERA_FACING_KEY, COMMON_CAMERA_FACING_DEF).toInt();
+    config.advancedDisplay = m_userData->value("AdvancedDisplay", false).toBool();
+    config.displayMode = m_userData->value("DisplayMode", 0).toInt();
+    config.displayId = m_userData->value("DisplayId", "").toString();
+    config.newDisplay = m_userData->value("NewDisplay", "").toString();
+    config.crop = m_userData->value("Crop", "").toString();
+    config.flexDisplay = m_userData->value("FlexDisplay", false).toBool();
+    config.displayImePolicy = m_userData->value("DisplayImePolicy", "").toString();
+    config.vdSystemDecorations = m_userData->value("VdSystemDecorations", true).toBool();
+    config.vdDestroyContent = m_userData->value("VdDestroyContent", true).toBool();
+    config.keepActive = m_userData->value("KeepActive", false).toBool();
+    config.startApp = m_userData->value("StartApp", "").toString();
     m_userData->endGroup();
     return config;
 }
@@ -353,6 +449,22 @@ QString Config::getCodecName()
     codecName = m_settings->value(COMMON_CODEC_NAME_KEY, COMMON_CODEC_NAME_DEF).toString();
     m_settings->endGroup();
     return codecName;
+}
+
+QString Config::getConfigDirectory()
+{
+    return getConfigPath();
+}
+
+bool Config::updateCommonConfig(const QMap<QString, QVariant> &values)
+{
+    m_settings->beginGroup(GROUP_COMMON);
+    for (auto it = values.cbegin(); it != values.cend(); ++it) {
+        m_settings->setValue(it.key(), it.value());
+    }
+    m_settings->endGroup();
+    m_settings->sync();
+    return m_settings->status() == QSettings::NoError;
 }
 
 QStringList Config::getConnectedGroups()

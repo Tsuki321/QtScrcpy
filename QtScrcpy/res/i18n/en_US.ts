@@ -20,6 +20,14 @@
         <translation>no lock</translation>
     </message>
     <message>
+        <source>FFmpeg + OpenGL (Universal Default)</source>
+        <translation>FFmpeg + OpenGL (Universal Default)</translation>
+    </message>
+    <message>
+        <source>VideoToolbox + Metal (Apple Silicon Only)</source>
+        <translation>VideoToolbox + Metal (Apple Silicon Only)</translation>
+    </message>
+    <message>
         <source>Notice</source>
         <translation>Notice</translation>
     </message>
@@ -34,6 +42,277 @@
     <message>
         <source>Clear History</source>
         <translation>Clear History</translation>
+    </message>
+    <message>
+        <source>display</source>
+        <translation>display</translation>
+    </message>
+    <message>
+        <source>camera</source>
+        <translation>camera</translation>
+    </message>
+    <message>
+        <source>back</source>
+        <translation>back</translation>
+    </message>
+    <message>
+        <source>front</source>
+        <translation>front</translation>
+    </message>
+    <message>
+        <source>Advanced display</source>
+        <translation>Advanced display</translation>
+    </message>
+    <message>
+        <source>Primary display</source>
+        <translation>Primary display</translation>
+    </message>
+    <message>
+        <source>Existing display ID</source>
+        <translation>Existing display ID</translation>
+    </message>
+    <message>
+        <source>New virtual display</source>
+        <translation>New virtual display</translation>
+    </message>
+    <message>
+        <source>Display mode</source>
+        <translation>Display mode</translation>
+    </message>
+    <message>
+        <source>Display ID</source>
+        <translation>Display ID</translation>
+    </message>
+    <message>
+        <source>Virtual size / DPI</source>
+        <translation>Virtual size / DPI</translation>
+    </message>
+    <message>
+        <source>Crop</source>
+        <translation>Crop</translation>
+    </message>
+    <message>
+        <source>Resize virtual display with window</source>
+        <translation>Resize virtual display with window</translation>
+    </message>
+    <message>
+        <source>Server default</source>
+        <translation>Server default</translation>
+    </message>
+    <message>
+        <source>IME policy</source>
+        <translation>IME policy</translation>
+    </message>
+    <message>
+        <source>Show system decorations</source>
+        <translation>Show system decorations</translation>
+    </message>
+    <message>
+        <source>Destroy content on close</source>
+        <translation>Destroy content on close</translation>
+    </message>
+    <message>
+        <source>Keep device active</source>
+        <translation>Keep device active</translation>
+    </message>
+    <message>
+        <source>Start app</source>
+        <translation>Start app</translation>
+    </message>
+    <message>
+        <source>invalid display ID</source>
+        <translation>invalid display ID</translation>
+    </message>
+    <message>
+        <source>flex display requires video, a new virtual display, and no crop</source>
+        <translation>flex display requires video, a new virtual display, and no crop</translation>
+    </message>
+    <message>
+        <source>camera preview requires Android 12 or later</source>
+        <translation>camera preview requires Android 12 or later</translation>
+    </message>
+    <message>
+        <source>virtual display requires Android 10 or later</source>
+        <translation>virtual display requires Android 10 or later</translation>
+    </message>
+    <message>
+        <source>could not verify Android version for camera preview</source>
+        <translation>could not verify Android version for camera preview</translation>
+    </message>
+    <message>
+        <source>no device</source>
+        <translation>no device</translation>
+    </message>
+    <message>
+        <source>stop preview first</source>
+        <translation>stop preview first</translation>
+    </message>
+    <message>
+        <source>refresh</source>
+        <translation>refresh</translation>
+    </message>
+    <message>
+        <source>camera refresh failed</source>
+        <translation>camera refresh failed</translation>
+    </message>
+    <message>
+        <source>camera refreshed</source>
+        <translation>camera refreshed</translation>
+    </message>
+    <message>
+        <source>no camera</source>
+        <translation>no camera</translation>
+    </message>
+    <message>
+        <source>stop server first</source>
+        <translation>stop server first</translation>
+    </message>
+    <message>
+        <source>app refresh failed</source>
+        <translation>app refresh failed</translation>
+    </message>
+    <message>
+        <source>apps refreshed</source>
+        <translation>apps refreshed</translation>
+    </message>
+    <message>
+        <source>no launchable app</source>
+        <translation>no launchable app</translation>
+    </message>
+    <message>
+        <source>Start Config</source>
+        <translation>Start Config</translation>
+    </message>
+    <message>
+        <source>Advanced Display</source>
+        <translation>Advanced Display</translation>
+    </message>
+    <message>
+        <source>Advanced Config</source>
+        <translation>Advanced Config</translation>
+    </message>
+    <message>
+        <source>Application configuration</source>
+        <translation>Application configuration</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>Automatic</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>Language</translation>
+    </message>
+    <message>
+        <source>Window title</source>
+        <translation>Window title</translation>
+    </message>
+    <message>
+        <source>Push file path</source>
+        <translation>Push file path</translation>
+    </message>
+    <message>
+        <source>Unlimited</source>
+        <translation>Unlimited</translation>
+    </message>
+    <message>
+        <source>Maximum FPS</source>
+        <translation>Maximum FPS</translation>
+    </message>
+    <message>
+        <source>Render expired video frames</source>
+        <translation>Render expired video frames</translation>
+    </message>
+    <message>
+        <source>Software OpenGL</source>
+        <translation>Software OpenGL</translation>
+    </message>
+    <message>
+        <source>OpenGL ES</source>
+        <translation>OpenGL ES</translation>
+    </message>
+    <message>
+        <source>Desktop OpenGL</source>
+        <translation>Desktop OpenGL</translation>
+    </message>
+    <message>
+        <source>Takes effect after restarting QtScrcpy.</source>
+        <translation>Takes effect after restarting QtScrcpy.</translation>
+    </message>
+    <message>
+        <source>OpenGL backend</source>
+        <translation>OpenGL backend</translation>
+    </message>
+    <message>
+        <source>Device server path</source>
+        <translation>Device server path</translation>
+    </message>
+    <message>
+        <source>Use bundled ADB</source>
+        <translation>Use bundled ADB</translation>
+    </message>
+    <message>
+        <source>ADB executable</source>
+        <translation>ADB executable</translation>
+    </message>
+    <message>
+        <source>Codec options</source>
+        <translation>Codec options</translation>
+    </message>
+    <message>
+        <source>Codec name</source>
+        <translation>Codec name</translation>
+    </message>
+    <message>
+        <source>Log level</source>
+        <translation>Log level</translation>
+    </message>
+    <message>
+        <source>Open Config Directory</source>
+        <translation>Open Config Directory</translation>
+    </message>
+    <message>
+        <source>Open Keymap Directory</source>
+        <translation>Open Keymap Directory</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Save</translation>
+    </message>
+    <message>
+        <source>Save failed</source>
+        <translation>Save failed</translation>
+    </message>
+    <message>
+        <source>Unable to save config.ini.</source>
+        <translation>Unable to save config.ini.</translation>
+    </message>
+    <message>
+        <source>Configuration saved</source>
+        <translation>Configuration saved</translation>
+    </message>
+    <message>
+        <source>The settings were saved to config.ini. Restart QtScrcpy for all changes to take effect.</source>
+        <translation>The settings were saved to config.ini. Restart QtScrcpy for all changes to take effect.</translation>
+    </message>
+    <message>
+        <source>Open directory failed</source>
+        <translation>Open directory failed</translation>
+    </message>
+</context>
+<context>
+    <name>PresetConfigDialog</name>
+    <message>
+        <source>Settings</source>
+        <translation>Settings</translation>
+    </message>
+    <message>
+        <source>Encoding Optimization Level</source>
+        <translation>Encoding Optimization Level</translation>
+    </message>
+    <message>
+        <source>Profile:</source>
+        <translation>Profile:</translation>
     </message>
 </context>
 <context>
@@ -59,6 +338,14 @@
         <translation>QuickAssistant</translation>
     </message>
     <message>
+        <source>If you need more professional PC remote software, you can try the following software:</source>
+        <translation>If you need more professional PC remote software, you can try the following software:</translation>
+    </message>
+    <message>
+        <source>QuickDesk</source>
+        <translation>QuickDesk</translation>
+    </message>
+    <message>
         <source>You can contact me with telegram &lt;https://t.me/+Ylf_5V_rDCMyODQ1&gt;</source>
         <translation>You can contact me with telegram &lt;https://t.me/+Ylf_5V_rDCMyODQ1&gt;</translation>
     </message>
@@ -70,52 +357,16 @@
         <translation>Tool</translation>
     </message>
     <message>
-        <source>full screen</source>
-        <translation>full screen</translation>
-    </message>
-    <message>
-        <source>expand notify</source>
-        <translation>expand notify</translation>
-    </message>
-    <message>
         <source>touch switch</source>
         <translation>touch switch</translation>
     </message>
     <message>
-        <source>close screen</source>
-        <translation>close screen</translation>
-    </message>
-    <message>
-        <source>power</source>
-        <translation>power</translation>
-    </message>
-    <message>
-        <source>volume up</source>
-        <translation>volume up</translation>
-    </message>
-    <message>
-        <source>volume down</source>
-        <translation>volume down</translation>
-    </message>
-    <message>
-        <source>app switch</source>
-        <translation>app switch</translation>
-    </message>
-    <message>
-        <source>menu</source>
-        <translation>menu</translation>
-    </message>
-    <message>
-        <source>home</source>
-        <translation>home</translation>
-    </message>
-    <message>
-        <source>return</source>
-        <translation>return</translation>
-    </message>
-    <message>
         <source>screen shot</source>
         <translation>screen shot</translation>
+    </message>
+    <message>
+        <source>copy clipboard text</source>
+        <translation>copy clipboard text</translation>
     </message>
     <message>
         <source>open screen</source>
@@ -124,6 +375,66 @@
     <message>
         <source>group control</source>
         <translation>group control</translation>
+    </message>
+    <message>
+        <source>full screen (Ctrl+F)</source>
+        <translation>full screen (Ctrl+F)</translation>
+    </message>
+    <message>
+        <source>expand notify (Ctrl+N)</source>
+        <translation>expand notify (Ctrl+N)</translation>
+    </message>
+    <message>
+        <source>expand settings panel (Ctrl+Alt+N)</source>
+        <translation>expand settings panel (Ctrl+Alt+N)</translation>
+    </message>
+    <message>
+        <source>rotate device (Ctrl+R)</source>
+        <translation>rotate device (Ctrl+R)</translation>
+    </message>
+    <message>
+        <source>close screen (Ctrl+O)</source>
+        <translation>close screen (Ctrl+O)</translation>
+    </message>
+    <message>
+        <source>power (Ctrl+P)</source>
+        <translation>power (Ctrl+P)</translation>
+    </message>
+    <message>
+        <source>volume up (Ctrl+Up)</source>
+        <translation>volume up (Ctrl+Up)</translation>
+    </message>
+    <message>
+        <source>volume down (Ctrl+Down)</source>
+        <translation>volume down (Ctrl+Down)</translation>
+    </message>
+    <message>
+        <source>app switch (Ctrl+S)</source>
+        <translation>app switch (Ctrl+S)</translation>
+    </message>
+    <message>
+        <source>menu (Ctrl+M)</source>
+        <translation>menu (Ctrl+M)</translation>
+    </message>
+    <message>
+        <source>home (Ctrl+H)</source>
+        <translation>home (Ctrl+H)</translation>
+    </message>
+    <message>
+        <source>return (Ctrl+B)</source>
+        <translation>return (Ctrl+B)</translation>
+    </message>
+    <message>
+        <source>torch</source>
+        <translation>torch</translation>
+    </message>
+    <message>
+        <source>zoom out</source>
+        <translation>zoom out</translation>
+    </message>
+    <message>
+        <source>zoom in</source>
+        <translation>zoom in</translation>
     </message>
 </context>
 <context>
@@ -190,6 +501,14 @@
     <message>
         <source>Double click to connect:</source>
         <translation>Double click to connect:</translation>
+    </message>
+    <message>
+        <source>Decode Mode:</source>
+        <translation>Decode Mode:</translation>
+    </message>
+    <message>
+        <source>FFmpeg: better compatibility; VideoToolbox: Apple Silicon only</source>
+        <translation>FFmpeg: better compatibility; VideoToolbox: Apple Silicon only</translation>
     </message>
     <message>
         <source>lock orientation:</source>
@@ -314,8 +633,48 @@
         <translation>show toolbar</translation>
     </message>
     <message>
+        <source>Quit the app when the window is closed instead of hiding it to the system tray</source>
+        <translation>Quit the app when the window is closed instead of hiding it to the system tray</translation>
+    </message>
+    <message>
+        <source>quit on close</source>
+        <translation>quit on close</translation>
+    </message>
+    <message>
         <source>record save path:</source>
         <translation>record save path:</translation>
+    </message>
+    <message>
+        <source>video source:</source>
+        <translation>video source:</translation>
+    </message>
+    <message>
+        <source>camera:</source>
+        <translation>camera:</translation>
+    </message>
+    <message>
+        <source>refresh</source>
+        <translation>refresh</translation>
+    </message>
+    <message>
+        <source>Codec Mode:</source>
+        <translation>Codec Mode:</translation>
+    </message>
+    <message>
+        <source>Default (Auto)</source>
+        <translation>Default (Auto)</translation>
+    </message>
+    <message>
+        <source>Encoder selection: Default uses system auto-select; presets enable vendor-specific tuning.</source>
+        <translation>Encoder selection: Default uses system auto-select; presets enable vendor-specific tuning.</translation>
+    </message>
+    <message>
+        <source>Encoder Settings...</source>
+        <translation>Encoder Settings...</translation>
+    </message>
+    <message>
+        <source>Open encoder advanced settings: optimization levels for visual quality and performance.</source>
+        <translation>Open encoder advanced settings: optimization levels for visual quality and performance.</translation>
     </message>
 </context>
 </TS>

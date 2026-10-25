@@ -2,8 +2,10 @@
 #define CONFIG_H
 
 #include <QObject>
+#include <QMap>
 #include <QPointer>
 #include <QRect>
+#include <QVariant>
 
 struct UserBootConfig
 {
@@ -23,6 +25,23 @@ struct UserBootConfig
     bool simpleMode       = false;
     bool autoUpdateDevice = true;
     bool showToolbar      = true;
+    bool quitOnClose      = false; // quit instead of hiding to the system tray when the main window is closed
+    int decodeMode        = 0;  // 0=FFmpeg OpenGL (默认), 1=VideoToolbox Metal (Apple Silicon)
+    int codecModeIndex    = 0;
+    int presetLevel       = 1;  // optimization tier of the currently selected encoder preset
+    int videoSource       = 0;  // 0=display, 1=camera
+    int cameraFacing      = 0;  // 0=back, 1=front
+    bool advancedDisplay = false;
+    int displayMode = 0;
+    QString displayId;
+    QString newDisplay;
+    QString crop;
+    bool flexDisplay = false;
+    QString displayImePolicy;
+    bool vdSystemDecorations = true;
+    bool vdDestroyContent = true;
+    bool keepActive = false;
+    QString startApp;
 };
 
 class QSettings;
@@ -46,6 +65,8 @@ public:
     QString getLogLevel();
     QString getCodecOptions();
     QString getCodecName();
+    QString getConfigDirectory();
+    bool updateCommonConfig(const QMap<QString, QVariant> &values);
     QStringList getConnectedGroups();
 
     // user data:common
@@ -75,6 +96,8 @@ public:
 private:
     explicit Config(QObject *parent = nullptr);
     const QString &getConfigPath();
+    QString getDefaultConfigPath() const;
+    void initializeConfig();
 
 private:
     static QString s_configPath;

@@ -13,6 +13,7 @@
 #include "adbprocess.h"
 #include "../QtScrcpyCore/include/QtScrcpyCore.h"
 #include "audio/audiooutput.h"
+#include "presetconfigdialog.h"
 
 namespace Ui
 {
@@ -20,6 +21,12 @@ namespace Ui
 }
 
 class QYUVOpenGLWidget;
+class QComboBox;
+class QLineEdit;
+class QCheckBox;
+class QGroupBox;
+class QPushButton;
+class QSpinBox;
 class Dialog : public QWidget
 {
     Q_OBJECT
@@ -31,6 +38,8 @@ public:
     void outLog(const QString &log, bool newLine = true);
     bool filterLog(const QString &log);
     void getIPbyIp();
+    // show the main window (e.g. when hidden in the tray) and give it focus
+    void bringToFront();
 
 private slots:
     void onDeviceConnected(bool success, const QString& serial, const QString& deviceName, const QSize& size);
@@ -67,6 +76,12 @@ private slots:
 
     void on_autoUpdatecheckBox_toggled(bool checked);
 
+    void on_codecModeBox_currentIndexChanged(int index);
+    void on_presetConfigBtn_clicked();
+
+    void on_videoSourceBox_currentIndexChanged(int index);
+    void on_refreshCameraBtn_clicked();
+
     void showIpEditMenu(const QPoint &pos);
 
 private:
@@ -81,12 +96,21 @@ private:
     quint32 getBitRate();
     quint32 getAutoBitRate(quint16 maxSize);
     const QString &getServerPath();
+    void initAdvancedConfigUi(QWidget *parent);
+    void loadAdvancedConfig();
+    void saveAdvancedConfig();
+    void openUserDirectory(const QString &path);
+    void refreshApps();
+    void updateVideoSourceUi();
+    void initAdvancedDisplayUi();
+    void updateAdvancedDisplayUi();
     void loadIpHistory();
     void saveIpHistory(const QString &ip);
     void loadPortHistory();
     void savePortHistory(const QString &port);
 
     void showPortEditMenu(const QPoint &pos);
+    void syncPresetLevelToUi();
 
 protected:
     void closeEvent(QCloseEvent *event);
@@ -95,11 +119,37 @@ private:
     Ui::Widget *ui;
     qsc::AdbProcess m_adb;
     QSystemTrayIcon *m_hideIcon;
+    QGroupBox *m_advancedDisplayGroup = nullptr;
+    QComboBox *m_configLanguageBox = nullptr;
+    QLineEdit *m_configTitleEdit = nullptr;
+    QLineEdit *m_configPushPathEdit = nullptr;
+    QSpinBox *m_configMaxFpsSpin = nullptr;
+    QCheckBox *m_configRenderExpiredCheck = nullptr;
+    QComboBox *m_configOpenGlBox = nullptr;
+    QLineEdit *m_configServerPathEdit = nullptr;
+    QLineEdit *m_configAdbPathEdit = nullptr;
+    QLineEdit *m_configCodecOptionsEdit = nullptr;
+    QLineEdit *m_configCodecNameEdit = nullptr;
+    QComboBox *m_configLogLevelBox = nullptr;
+    QComboBox *m_displayModeBox = nullptr;
+    QLineEdit *m_displayIdEdit = nullptr;
+    QLineEdit *m_newDisplayEdit = nullptr;
+    QLineEdit *m_cropEdit = nullptr;
+    QCheckBox *m_flexDisplayCheck = nullptr;
+    QComboBox *m_displayImePolicyBox = nullptr;
+    QCheckBox *m_vdSystemDecorationsCheck = nullptr;
+    QCheckBox *m_vdDestroyContentCheck = nullptr;
+    QCheckBox *m_keepActiveCheck = nullptr;
+    QComboBox *m_startAppBox = nullptr;
+    QPushButton *m_refreshAppsBtn = nullptr;
     QMenu *m_menu;
     QAction *m_showWindow;
     QAction *m_quit;
     AudioOutput m_audioOutput;
     QTimer m_autoUpdatetimer;
+    quint32 m_prevBitRate = 2000000;
+    int m_prevMaxSizeIndex = 0;
+    QPointer<PresetConfigDialog> m_presetDialog;
 };
 
 #endif // DIALOG_H
