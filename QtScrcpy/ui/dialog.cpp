@@ -112,8 +112,8 @@ Dialog::Dialog(QWidget *parent) : QWidget(parent), ui(new Ui::Widget)
             const QString serial = QString::fromLocal8Bit(qgetenv("QTSCRCPY_BENCHMARK_SERIAL"));
             if (ui->serialBox->findText(serial) < 0) { ui->serialBox->addItem(serial); }
             ui->serialBox->setCurrentText(serial);
-            ui->maxSizeBox->setCurrentText("1280");
-            m_wirelessPreset = true;
+            auto *profile = findChild<QComboBox *>("wirelessPreset");
+            profile->setCurrentIndex(qgetenv("QTSCRCPY_BENCHMARK_PRESET") == "low-bandwidth" ? 2 : 1);
             on_startServerBtn_clicked();
         });
         const int seconds = qBound(5, qEnvironmentVariableIntValue("QTSCRCPY_BENCHMARK_SECONDS"), 600);
@@ -368,12 +368,15 @@ void Dialog::initUI()
     connect(wireless, &WirelessPanel::devicesChanged, this, [this]() {
         if (!m_adb.isRuning()) { on_updateDevice_clicked(); }
     });
-    auto *latencyPreset = new QCheckBox(tr("Wireless preset: 720p, 60 FPS, 4 Mbps"), startConfigPage);
+    auto *latencyPreset = new QComboBox(startConfigPage);
+    latencyPreset->setObjectName("wirelessPreset");
+    latencyPreset->addItems({tr("Manual capture settings"), tr("Wireless: 720p / 60 FPS / 4 Mbps"),
+                            tr("Weak Wi-Fi: 540p / 60 FPS / 1.5 Mbps")});
     startConfigPage->layout()->addWidget(latencyPreset);
-    latencyPreset->setToolTip(tr("Encode at a 1280-pixel longest edge and scale to your window. Ctrl+U toggles light sharpening; Ctrl+E edits mappings."));
-    connect(latencyPreset, &QCheckBox::toggled, this, [this](bool enabled) {
-        if (enabled) { ui->maxSizeBox->setCurrentText("1280"); }
-        m_wirelessPreset = enabled;
+    latencyPreset->setToolTip(tr("Capture at a lower resolution and scale to your window. Choose Weak Wi-Fi if video stalls. Ctrl+U toggles light sharpening; Ctrl+E edits mappings."));
+    connect(latencyPreset, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this](int profile) {
+        if (profile) { ui->maxSizeBox->setCurrentText(profile == 2 ? "960" : "1280"); }
+        m_wirelessPreset = profile;
     });
     configTabs->addTab(advancedDisplayPage, tr("Advanced Display"));
     configTabs->addTab(advancedConfigPage, tr("Advanced Config"));
@@ -878,7 +881,7 @@ void Dialog::on_startServerBtn_clicked()
     params.bitRate = getAutoBitRate(videoSize);
     // on devices with Android >= 10, the capture frame rate can be limited
     params.maxFps = m_wirelessPreset ? 60 : static_cast<quint32>(Config::getInstance().getMaxFps());
-    if (m_wirelessPreset) { params.bitRate = 4000000; }
+    if (m_wirelessPreset) { params.bitRate = m_wirelessPreset == 2 ? 1500000 : 4000000; }
     params.videoSource = static_cast<qsc::VideoSource>(ui->videoSourceBox->currentIndex());
     params.cameraFacing = ui->cameraFacingBox->currentIndex() == 1
             ? qsc::CAMERA_FACING_FRONT
@@ -933,7 +936,13 @@ void Dialog::on_startServerBtn_clicked()
         params.codecOptions = Config::getInstance().getCodecOptions();
         params.codecName = Config::getInstance().getCodecName();
     }
-    if (m_wirelessPreset) { params.bitRate = 4000000; params.codecOptions.clear(); params.codecName.clear(); }
+    if (m_wirelessPreset) {
+        params.maxSize = m_wirelessPreset == 2 ? 960 : 1280;
+        params.bitRate = m_wirelessPreset == 2 ? 1500000 : 4000000;
+        params.renderExpiredFrames = false;
+        params.codecOptions.clear();
+        params.codecName.clear();
+    }
     params.scid = QRandomGenerator::global()->bounded(1, 10000) & 0x7FFFFFFF;
     params.decodeMode = ui->decodeModeBox->currentIndex();
     // Disabled widgets may remain checked from persisted settings. Advanced

@@ -30,7 +30,7 @@ class QSpinBox;
 class Dialog : public QWidget
 {
     Q_OBJECT
-    bool m_wirelessPreset = false;
+    int m_wirelessPreset = 0;
 
 public:
     explicit Dialog(QWidget *parent = 0);

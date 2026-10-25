@@ -33,10 +33,12 @@ the explicit connection-port field still works without discovery.
 
 ## Low latency and integrated graphics
 
-Enable **Wireless preset: 720p, 60 FPS, 4 Mbps** before starting the stream.
+Select **Wireless: 720p / 60 FPS / 4 Mbps** before starting the stream.
 This sets the encoded longest edge to 1280 pixels (the other edge follows the
-phone's aspect ratio), caps capture at 60 FPS and requests 4 Mbps H.264. Uncheck
-the preset to return to manual settings. Capture settings apply on the next
+phone's aspect ratio), caps capture at 60 FPS and requests 4 Mbps H.264.
+For slow or variable networks, **Weak Wi-Fi: 540p / 60 FPS / 1.5 Mbps** lowers
+the longest edge to 960 and leaves more network headroom. Both presets disable
+rendering of expired frames. Select **Manual capture settings** for manual control. Capture settings apply on the next
 connection. The phone may send fewer frames when its screen is idle.
 
 Resize or maximize the video window to scale the picture. The default is GPU
@@ -109,6 +111,9 @@ python benchmarks/live_phone.py --adb "path/to/adb.exe" `
   --serial "PHONE_IP:CONNECTION_PORT" --app "path/to/QtScrcpy.exe" `
   --seconds 30 --output "phone-benchmark.json"
 ```
+
+Use `--preset low-bandwidth` to test the Weak Wi-Fi profile. Add `--render-only`
+to start the stream immediately without running the transport probes first.
 
 Close other QtScrcpy instances first. Keep the phone unlocked, with repeatable
 on-screen motion when comparing frame rates. The script measures 30 ADB shell
