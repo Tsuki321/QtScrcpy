@@ -30,6 +30,8 @@
 #include <QJsonObject>
 #include <QMetaEnum>
 #include <QToolButton>
+#include <QCoreApplication>
+#include <QElapsedTimer>
 
 #ifdef Q_OS_MACOS
 #include "metalvideowindow.h"
@@ -47,6 +49,7 @@ VideoForm::VideoForm(bool framelessWindow, bool skin, bool showToolbar, int deco
         }
     });
     initUI();
+    m_benchmarkOutput = QString::fromLocal8Bit(qgetenv("QTSCRCPY_BENCHMARK_OUTPUT"));
     installShortcut();
     auto *editShortcut = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_E), this);
     auto *editButton = new QToolButton(videoWidget());
@@ -57,31 +60,21 @@ VideoForm::VideoForm(bool framelessWindow, bool skin, bool showToolbar, int deco
     const auto openEditor = [this]() {
         if (m_keymapEditor && m_keymapEditor->isVisible()) { return; }
         auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
-        if (device) { device->updateScript(QString()); }
+        if (device && device->isCameraMode()) { return; }
+        if (device) {
+            m_restoreScript = device->currentScript();
+            m_restoreMapEnabled = device->isCurrentCustomKeymap();
+            device->updateScript(QString());
+        }
         grabCursor(false);
         if (!m_keymapEditor) {
             m_keymapEditor = new KeyMapEditor(videoWidget());
+            m_keymapEditor->setScript(m_restoreScript);
             connect(m_keymapEditor, &KeyMapEditor::applied, this, [this](const QString &script) {
-                auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
-                if (!device) { return; }
-                device->updateScript(script);
-                const auto key = QJsonDocument::fromJson(script.toUtf8()).object().value("switchKey").toString().toLatin1();
-                bool ok = false;
-                int value = QMetaEnum::fromType<Qt::Key>().keyToValue(key.constData(), &ok);
-                if (ok) {
-                    QKeyEvent down(QEvent::KeyPress, value, Qt::NoModifier);
-                    QKeyEvent up(QEvent::KeyRelease, value, Qt::NoModifier);
-                    device->keyEvent(&down, m_frameSize, videoWidget()->size());
-                    device->keyEvent(&up, m_frameSize, videoWidget()->size());
-                } else {
-                    value = QMetaEnum::fromType<Qt::MouseButtons>().keyToValue(key.constData(), &ok);
-                    if (ok) {
-                        QMouseEvent down(QEvent::MouseButtonPress, QPointF(0, 0), static_cast<Qt::MouseButton>(value), static_cast<Qt::MouseButton>(value), Qt::NoModifier);
-                        device->mouseEvent(&down, m_frameSize, videoWidget()->size());
-                    }
-                }
+                m_restoreScript = script;
+                m_restoreMapEnabled = true;
             });
-            connect(m_keymapEditor, &KeyMapEditor::editingFinished, this, [this]() { setFocus(); });
+            connect(m_keymapEditor, &KeyMapEditor::editingFinished, this, [this]() { applyEditorScript(); setFocus(); });
         }
         m_keymapEditor->open();
     };
@@ -307,8 +300,23 @@ void VideoForm::updateRender(int width, int height, uint8_t* dataY, uint8_t* dat
     } else {
         m_frameSize = QSize(width, height);
     }
+    QElapsedTimer submitTimer;
+    if (!m_benchmarkOutput.isEmpty()) { submitTimer.start(); }
     m_videoWidget->setFrameSize(QSize(width, height));
     m_videoWidget->updateTextures(dataY, dataU, dataV, linesizeY, linesizeU, linesizeV);
+    if (!m_benchmarkOutput.isEmpty()) {
+        m_metrics.record(submitTimer.nsecsElapsed(), QSize(width, height));
+        if (!m_benchmarkStarted) {
+            m_benchmarkStarted = true;
+            const int seconds = qBound(5, qEnvironmentVariableIntValue("QTSCRCPY_BENCHMARK_SECONDS"), 600);
+            QTimer::singleShot(seconds * 1000, this, [this]() {
+                const bool saved = m_metrics.save(m_benchmarkOutput);
+                m_benchmarkOutput.clear();
+                QCoreApplication::exit(saved ? 0 : 3);
+            });
+        }
+    }
+
 }
 
 void VideoForm::setSerial(const QString &serial)
@@ -1137,5 +1145,28 @@ void VideoForm::dropEvent(QDropEvent *event)
             continue;
         }
         emit device->pushFileRequest(file, Config::getInstance().getPushFilePath() + fileInfo.fileName());
+    }
+}
+
+void VideoForm::applyEditorScript()
+{
+    auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
+    if (!device) { return; }
+    device->updateScript(m_restoreScript);
+    if (!m_restoreMapEnabled || m_restoreScript.isEmpty()) { return; }
+    const auto key = QJsonDocument::fromJson(m_restoreScript.toUtf8()).object().value("switchKey").toString().toLatin1();
+    bool ok = false;
+    int value = QMetaEnum::fromType<Qt::Key>().keyToValue(key.constData(), &ok);
+    if (ok) {
+        QKeyEvent down(QEvent::KeyPress, value, Qt::NoModifier);
+        QKeyEvent up(QEvent::KeyRelease, value, Qt::NoModifier);
+        device->keyEvent(&down, m_frameSize, videoWidget()->size());
+        device->keyEvent(&up, m_frameSize, videoWidget()->size());
+    } else {
+        value = QMetaEnum::fromType<Qt::MouseButtons>().keyToValue(key.constData(), &ok);
+        if (ok) {
+            QMouseEvent down(QEvent::MouseButtonPress, QPointF(0, 0), static_cast<Qt::MouseButton>(value), static_cast<Qt::MouseButton>(value), Qt::NoModifier);
+            device->mouseEvent(&down, m_frameSize, videoWidget()->size());
+        }
     }
 }

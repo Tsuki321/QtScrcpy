@@ -107,6 +107,18 @@ Dialog::Dialog(QWidget *parent) : QWidget(parent), ui(new Ui::Widget)
     ui->setupUi(this);
     initializeKeyMapDirectory();
     initUI();
+    if (!qEnvironmentVariableIsEmpty("QTSCRCPY_BENCHMARK_SERIAL")) {
+        QTimer::singleShot(500, this, [this]() {
+            const QString serial = QString::fromLocal8Bit(qgetenv("QTSCRCPY_BENCHMARK_SERIAL"));
+            if (ui->serialBox->findText(serial) < 0) { ui->serialBox->addItem(serial); }
+            ui->serialBox->setCurrentText(serial);
+            ui->maxSizeBox->setCurrentText("1280");
+            m_wirelessPreset = true;
+            on_startServerBtn_clicked();
+        });
+        const int seconds = qBound(5, qEnvironmentVariableIntValue("QTSCRCPY_BENCHMARK_SECONDS"), 600);
+        QTimer::singleShot((seconds + 60) * 1000, this, []() { QCoreApplication::exit(2); });
+    }
 
     updateBootConfig(true);
 

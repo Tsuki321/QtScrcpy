@@ -50,7 +50,7 @@ def main():
     throughput = []
     for _ in range(3):
         start = time.perf_counter()
-        data = run("exec-out", "dd", "if=/dev/zero", "bs=65536", "count=64")
+        data = run("exec-out", "head", "-c", "4194304", "/dev/zero")
         elapsed = time.perf_counter() - start
         if len(data) != 4 * 1024 * 1024:
             raise RuntimeError("Incomplete transport sample")

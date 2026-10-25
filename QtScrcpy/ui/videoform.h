@@ -4,6 +4,7 @@
 #include <QPointer>
 #include <QTimer>
 #include <QWidget>
+#include "framemetrics.h"
 
 #include "../QtScrcpyCore/include/QtScrcpyCore.h"
 
@@ -23,6 +24,13 @@ class VideoForm : public QWidget, public qsc::DeviceObserver
     Q_OBJECT
     KeyMapEditor *m_keymapEditor = nullptr;
     bool m_lightSharpening = false;
+    QString m_restoreScript;
+    bool m_restoreMapEnabled = false;
+    void applyEditorScript();
+    FrameMetrics m_metrics;
+    bool m_benchmarkStarted = false;
+    QString m_benchmarkOutput;
+
 public:
     explicit VideoForm(bool framelessWindow = false, bool skin = true, bool showToolBar = true, int decodeMode = 0, QWidget *parent = 0);
     ~VideoForm();

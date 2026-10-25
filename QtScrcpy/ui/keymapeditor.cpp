@@ -296,3 +296,14 @@ void KeyMapEditor::finish()
     hide();
     emit editingFinished();
 }
+
+void KeyMapEditor::setScript(const QString &script)
+{
+    if (script.isEmpty()) { return; }
+    QString error;
+    if (!m_document.load(script.toUtf8(), &error)) { m_hint->setText(error); }
+    update();
+}
+void KeyMapEditor::keyReleaseEvent(QKeyEvent *event) { event->accept(); }
+void KeyMapEditor::wheelEvent(QWheelEvent *event) { event->accept(); }
+void KeyMapEditor::mouseDoubleClickEvent(QMouseEvent *event) { event->accept(); bind(m_selected); }

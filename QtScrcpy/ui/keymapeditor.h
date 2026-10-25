@@ -9,6 +9,7 @@ class KeyMapEditor : public QWidget
 public:
     explicit KeyMapEditor(QWidget *video);
     void open();
+    void setScript(const QString &script);
 signals:
     void applied(const QString &script);
     void editingFinished();
@@ -19,6 +20,9 @@ protected:
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
+    void wheelEvent(QWheelEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
 private:
     void save();
     void load();
