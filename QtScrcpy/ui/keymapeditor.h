@@ -5,6 +5,7 @@
 class QLabel;
 class QComboBox;
 class QListWidget;
+class MouseLookCalibration;
 
 class KeyMapEditor : public QWidget
 {
@@ -13,9 +14,12 @@ public:
     explicit KeyMapEditor(QWidget *video);
     void open();
     void setScript(const QString &script);
+    void cancelCalibration();
 signals:
     void applied(const QString &script);
     void editingFinished();
+    void calibrationPreviewRequested(const QString &script);
+    void calibrationMovementRequested(const QPointF &position);
 protected:
     bool eventFilter(QObject *object, QEvent *event) override;
     void paintEvent(QPaintEvent *) override;
@@ -37,6 +41,7 @@ private:
     void edit(int index, const QString &newType = QString(), QPointF point = QPointF(.5, .5));
     void settings();
     void editJson();
+    void calibrateMouseLook();
     void remember();
     void refresh();
     void undo(bool redo = false);
@@ -51,4 +56,5 @@ private:
     bool m_dirty = false;
     QString m_path;
     QString m_sourceScript;
+    MouseLookCalibration *m_calibration = nullptr;
 };

@@ -180,6 +180,9 @@ set(QC_UI_SOURCES
     ui/keymapproperties.h
     ui/keymapeditor.h
     ui/keymapeditor.cpp
+    ui/mouselookcalibration.h
+    ui/mouselookcalibration.cpp
+    ui/mouselookcalibrationmath.h
     ui/toolform.h
     ui/toolform.cpp
     ui/toolform.ui

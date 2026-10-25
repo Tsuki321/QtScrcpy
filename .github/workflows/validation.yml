@@ -54,6 +54,7 @@ jobs:
             build/Testing/Temporary/LastTest.log
             build/tests/benchmark-results.xml
             build/tests/keymap-results.xml
+            build/tests/calibration-result.png
       - uses: actions/upload-artifact@v4
         with:
           name: QtScrcpy-wireless-windows-x64
@@ -88,3 +89,4 @@ jobs:
             build/Testing/Temporary/LastTest.log
             build/tests/benchmark-results.xml
             build/tests/keymap-results.xml
+            build/tests/calibration-result.png

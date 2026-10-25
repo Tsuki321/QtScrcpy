@@ -123,6 +123,37 @@ Description of the unique attributes of different key mapping types:
     -upOffset After pressing the up arrow key, drag it to the upper offset position horizontally relative to the centerPos position
     -downOffset Press the down arrow key and drag it to the downOffset position horizontally relative to the centerPos position
 
+## Guided mouse-look calibration
+
+Open **Map** (Ctrl+E), add or select a **Mouse look** mapping, and place its touch
+origin in the game's camera-control area. Choose **Calibrate look**.
+
+1. Stand still in a practice area, using the window size and zoom you play with.
+2. Click a stationary detail near the center of the game view, such as a wall corner.
+   Do not select the crosshair, HUD, your character, or another moving object.
+3. Hold **Space**, make a short, steady mouse sweep along the requested axis, and
+   release Space. Click the same detail at its new position after the camera settles.
+4. Repeat for two horizontal and two vertical sweeps. The tool calculates each
+   axis's sensitivity and rejects inconsistent measurements. If the detail leaves
+   the screen, **Point left screen** slows the next trial automatically.
+5. Hold Space to try the result, choose **Use calibration**, then **Save** the profile
+   and **Apply** it. The editor's Undo restores the previous sensitivity.
+
+**Tab** hides/shows instructions if they cover the detail; **Escape** cancels.
+Calibration temporarily isolates camera movement from other game bindings. Cancel
+leaves the profile unchanged. Resizing restarts calibration; losing focus stops the
+current sweep; a phone resolution/orientation change cancels it.
+
+This measures the combined mouse and game response in the mirrored view. It targets
+one pixel of scene movement per desktop cursor pixel near the center, using Qt's
+logical coordinates so display scaling is handled consistently. A larger speed
+ratio reduces sensitivity: the correction is `old ratio * scene travel / mouse travel`,
+using absolute distances. No DPI entry or access to the game's settings is needed.
+It is a local aiming match, not a measurement of degrees per turn. Acceleration,
+perspective, zoom and third-person camera effects can change the response, so use
+similar sweep speeds and recalibrate after changing DPI, game sensitivity, zoom or
+window size. Separate profiles can retain settings for different games or zoom levels.
+
 ## Visual Key Mapping Tool
 
 1. Just use [QuickAssistant](https://lrbnfell4p.feishu.cn/drive/folder/Hqckfxj5el1Wjpd9uezcX71lnBh)

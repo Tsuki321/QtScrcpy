@@ -29,6 +29,8 @@ set_tests_properties(features PROPERTIES TIMEOUT 120)
 
 add_executable(qtscrcpy_keymap_tests test_keymap.cpp
     ../QtScrcpy/ui/keymapeditor.cpp ../QtScrcpy/ui/keymapeditor.h
+    ../QtScrcpy/ui/mouselookcalibration.cpp ../QtScrcpy/ui/mouselookcalibration.h
+    ../QtScrcpy/ui/mouselookcalibrationmath.h
     ../QtScrcpy/ui/keymapproperties.h ../QtScrcpy/ui/keymapdocument.h)
 target_include_directories(qtscrcpy_keymap_tests PRIVATE ../QtScrcpy/ui
     ${CORE}/src/common

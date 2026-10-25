@@ -74,6 +74,22 @@ VideoForm::VideoForm(bool framelessWindow, bool skin, bool showToolbar, int deco
                 m_restoreMapEnabled = !script.isEmpty();
             });
             connect(m_keymapEditor, &KeyMapEditor::editingFinished, this, [this]() { applyEditorScript(); setFocus(); });
+            connect(m_keymapEditor, &KeyMapEditor::calibrationPreviewRequested, this, [this](const QString &script) {
+                auto previewDevice = qsc::IDeviceManage::getInstance().getDevice(m_serial);
+                if (!previewDevice || m_frameSize.isEmpty()) { m_keymapEditor->cancelCalibration(); return; }
+                previewDevice->updateScript(script);
+                if (!script.isEmpty()) {
+                    QKeyEvent toggle(QEvent::KeyPress, Qt::Key_F12, Qt::NoModifier);
+                    previewDevice->keyEvent(&toggle, m_frameSize, videoWidget()->size());
+                }
+            });
+            connect(m_keymapEditor, &KeyMapEditor::calibrationMovementRequested, this, [this](const QPointF &position) {
+                auto previewDevice = qsc::IDeviceManage::getInstance().getDevice(m_serial);
+                if (!previewDevice) { m_keymapEditor->cancelCalibration(); return; }
+                QMouseEvent move(QEvent::MouseMove, position, videoWidget()->mapToGlobal(position.toPoint()),
+                    Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+                previewDevice->mouseEvent(&move, m_frameSize, videoWidget()->size());
+            });
         }
         m_keymapEditor->setScript(m_restoreScript);
         m_keymapEditor->open();
@@ -118,6 +134,7 @@ VideoForm::VideoForm(bool framelessWindow, bool skin, bool showToolbar, int deco
 
 VideoForm::~VideoForm()
 {
+    if (m_keymapEditor) { m_keymapEditor->cancelCalibration(); }
     delete ui;
 }
 
@@ -651,6 +668,7 @@ QMargins VideoForm::getMargins(bool vertical)
 void VideoForm::updateShowSize(const QSize &newSize)
 {
     if (m_frameSize != newSize) {
+        if (m_keymapEditor) { m_keymapEditor->cancelCalibration(); }
         m_frameSize = newSize;
 
         m_widthHeightRatio = 1.0f * newSize.width() / newSize.height();
@@ -780,6 +798,9 @@ void VideoForm::updateFPS(quint32 fps)
 
 void VideoForm::grabCursor(bool grab)
 {
+    // Calibration sends bounded virtual coordinates while the overlay receives
+    // real desktop motion. Clipping the real cursor would truncate the sweep.
+    if (grab && m_keymapEditor && m_keymapEditor->isVisible()) { return; }
     QRect rc = getGrabCursorRect();
     MouseTap::getInstance()->enableMouseEventTap(rc, grab);
 }

@@ -1,5 +1,6 @@
 #include "keymapeditor.h"
 #include "keymapproperties.h"
+#include "mouselookcalibration.h"
 #include <QDir>
 #include <QFileDialog>
 #include <QGridLayout>
@@ -68,6 +69,7 @@ KeyMapEditor::KeyMapEditor(QWidget *video) : QWidget(video)
     button(tr("Redo"), "redoMapping", [this]() { undo(true); });
     button(tr("Toggle key"), "profileSettings", [this]() { settings(); });
     button(tr("JSON"), "editJson", [this]() { editJson(); });
+    button(tr("Calibrate look"), "calibrateMouseLook", [this]() { calibrateMouseLook(); });
     button(tr("Apply"), "applyProfile", [this]() { apply(); });
     button(tr("Close"), "closeEditor", [this]() { finish(); });
     m_list = new QListWidget;
@@ -163,6 +165,7 @@ QVector<KeyMapEditor::Marker> KeyMapEditor::markers() const
 
 void KeyMapEditor::paintEvent(QPaintEvent *)
 {
+    if (m_calibration) { return; }
     QPainter painter(this); painter.setRenderHint(QPainter::Antialiasing);
     painter.fillRect(rect(), QColor(0, 0, 0, 65));
     const auto screen = [this](QPointF p) { return QPointF(p.x() * width(), p.y() * height()); };
@@ -335,9 +338,54 @@ void KeyMapEditor::apply()
     const QString script = m_document.nodes().isEmpty() && !m_document.root.contains("mouseMoveMap") ? QString() : QString::fromUtf8(m_document.json());
     m_sourceScript = script; emit applied(script); hide(); emit editingFinished();
 }
-void KeyMapEditor::finish() { hide(); emit editingFinished(); }
+void KeyMapEditor::cancelCalibration()
+{
+    if (m_calibration) { m_calibration->cancel(); }
+}
+
+void KeyMapEditor::calibrateMouseLook()
+{
+    if (m_calibration) { return; }
+    const auto mouse = m_document.root.value("mouseMoveMap").toObject();
+    if (mouse.isEmpty()) {
+        QMessageBox::information(this, tr("Calibrate mouse look"),
+            tr("Add a Mouse look mapping first, with its touch origin in the game's camera-control area."));
+        return;
+    }
+    const QString error = KeyMapValidation::validate(m_document.root);
+    if (!error.isEmpty()) { QMessageBox::warning(this, tr("Invalid profile"), error); return; }
+    if (qMin(width(), height()) < 300 || qMax(width(), height()) < 480) {
+        QMessageBox::information(this, tr("Calibrate mouse look"), tr("Enlarge the game view to at least 480 x 300 (or 300 x 480) to calibrate accurately."));
+        return;
+    }
+    auto *calibration = new MouseLookCalibration(mouse, this);
+    m_calibration = calibration;
+    connect(calibration, &MouseLookCalibration::previewRequested, this, &KeyMapEditor::calibrationPreviewRequested);
+    connect(calibration, &MouseLookCalibration::movementRequested, this, &KeyMapEditor::calibrationMovementRequested);
+    connect(calibration, &MouseLookCalibration::accepted, this, [this](const QJsonObject &calibrated) {
+        remember();
+        m_document.root["mouseMoveMap"] = calibrated;
+        refresh();
+    });
+    connect(calibration, &MouseLookCalibration::finished, this, [this, calibration]() {
+        m_calibration = nullptr;
+        calibration->hide();
+        calibration->deleteLater();
+        m_toolbar->show();
+        setFocus();
+        refresh();
+    });
+    m_toolbar->hide();
+    calibration->show();
+    calibration->raise();
+    calibration->setFocus();
+    update();
+}
+
+void KeyMapEditor::finish() { cancelCalibration(); hide(); emit editingFinished(); }
 void KeyMapEditor::setScript(const QString &script)
 {
+    cancelCalibration();
     if (script == m_sourceScript) { return; }
     KeyMapDocument candidate; QString error;
     if (!script.isEmpty() && !candidate.load(script.toUtf8(), &error)) { m_hint->setText(error); return; }

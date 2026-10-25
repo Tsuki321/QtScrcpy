@@ -165,6 +165,9 @@ public:
             const double legacy = node.value("speedRatio").toDouble(1);
             number("speedRatioX", tr("X speed ratio (lower = faster)"), .001, 1000000, 4, legacy);
             number("speedRatioY", tr("Y speed ratio (lower = faster)"), .001, 1000000, 4, node.contains("speedRatio") ? legacy / 2.25 : 1);
+            auto *calibrationHelp = new QLabel(tr("For guided sensitivity setup, close this dialog and choose Calibrate look in the editor."));
+            calibrationHelp->setWordWrap(true);
+            form->addRow(calibrationHelp);
             freeLook = new QCheckBox(tr("Enable free look while holding a binding (smallEyes)"));
             freeLook->setChecked(node.contains("smallEyes")); form->addRow(freeLook);
             const auto eyes = node.value("smallEyes").toObject();
