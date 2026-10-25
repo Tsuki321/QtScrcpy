@@ -27,9 +27,10 @@ QJsonObject steering()
 }
 QJsonObject sequence(const QString &key, int delay = 0)
 {
-    return {{"type", "KMT_CLICK_MULTI"}, {"key", key}, {"clickNodes", QJsonArray{
+    const QJsonArray steps{
         QJsonObject{{"delay", delay}, {"pos", pos(.3, .4)}},
-        QJsonObject{{"delay", delay}, {"pos", pos(.6, .7)}}}};
+        QJsonObject{{"delay", delay}, {"pos", pos(.6, .7)}}};
+    return {{"type", "KMT_CLICK_MULTI"}, {"key", key}, {"clickNodes", steps}};
 }
 QJsonObject swipe(const QString &key)
 {
@@ -121,7 +122,7 @@ private slots:
             profile({QJsonObject{{"type", "KMT_CLICK"}, {"key", "Key_F"}, {"pos", pos(2, .5)}}}),
             profile({QJsonObject{{"type", "KMT_UNKNOWN"}, {"key", "Key_F"}}}),
             profile({}, QJsonObject{{"startPos", pos()}, {"speedRatioX", 1}, {"speedRatioY", 0}}),
-            profile({QJsonObject{{"type", "KMT_CLICK_MULTI"}, {"key", "Key_F"}, {"clickNodes", QJsonArray()}}),
+            profile({QJsonObject{{"type", "KMT_CLICK_MULTI"}, {"key", "Key_F"}, {"clickNodes", QJsonArray()}}}),
             profile({QJsonObject{{"type", "KMT_DRAG"}, {"key", "Key_F"}, {"startPos", pos()}, {"endPos", pos()}, {"startDelay", -1}}})
         };
         for (const auto &root : invalid) {
