@@ -86,7 +86,7 @@ discovery, command timeouts, profile validation, input release, latest-frame
 replacement, buffer lifetime and current-frame rendering with padded strides.
 The Windows artifact contains a runnable application, ADB, server and Qt libraries.
 
-The same test run publishes `test-results.xml`, `benchmark-results.xml`, and a
+The same test run publishes `ctest-results.xml`, `benchmark-results.xml`, and a
 synthetic framebuffer image. Microbenchmarks compare the previous 1080p plane-copy
 operation with frame referencing, and measure 1280×720 → 1920×1080 rendering with
 bilinear scaling and mild sharpening. Rendering waits for GPU completion. Hosted

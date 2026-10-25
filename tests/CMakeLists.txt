@@ -24,5 +24,5 @@ if(WIN32)
 endif()
 set_target_properties(qtscrcpy_tests PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/output/x64/${CMAKE_BUILD_TYPE}/$<0:>")
-add_test(NAME features COMMAND qtscrcpy_tests -o test-results.xml,junitxml -o benchmark-results.xml,xml -o -,txt)
+add_test(NAME features COMMAND qtscrcpy_tests -o benchmark-results.xml,xml -o -,txt)
 set_tests_properties(features PROPERTIES TIMEOUT 120)

@@ -33,12 +33,14 @@ jobs:
           Copy-Item keymap output/x64/Release/keymap -Recurse
           windeployqt --release --no-translations output/x64/Release/QtScrcpy.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          windeployqt --release --no-translations output/x64/Release/qtscrcpy_tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Regression tests and measured microbenchmarks
         shell: pwsh
         env:
           QT_OPENGL: software
         run: |
-          ctest --test-dir build -C Release --output-on-failure
+          ctest --test-dir build -C Release --output-on-failure --output-junit "$PWD/ctest-results.xml"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
@@ -46,7 +48,7 @@ jobs:
           name: windows-tests-and-benchmarks
           path: |
             build/tests/render-white.png
-            build/tests/test-results.xml
+            ctest-results.xml
             build/Testing/Temporary/LastTest.log
             build/tests/benchmark-results.xml
       - uses: actions/upload-artifact@v4
@@ -72,13 +74,13 @@ jobs:
           cmake --build build --parallel 2
       - name: Regression tests and measured microbenchmarks
         run: |
-          xvfb-run -a -s '-screen 0 1920x1080x24' ctest --test-dir build --output-on-failure
+          xvfb-run -a -s '-screen 0 1920x1080x24' ctest --test-dir build --output-on-failure --output-junit "$PWD/ctest-results.xml"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: linux-tests-and-benchmarks
           path: |
             build/tests/render-white.png
-            build/tests/test-results.xml
+            ctest-results.xml
             build/Testing/Temporary/LastTest.log
             build/tests/benchmark-results.xml
