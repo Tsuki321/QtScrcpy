@@ -35,6 +35,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           windeployqt --release --no-translations output/x64/Release/qtscrcpy_tests.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          windeployqt --release --no-translations output/x64/Release/qtscrcpy_keymap_tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Regression tests and measured microbenchmarks
         shell: pwsh
         env:
@@ -51,6 +53,7 @@ jobs:
             ctest-results.xml
             build/Testing/Temporary/LastTest.log
             build/tests/benchmark-results.xml
+            build/tests/keymap-results.xml
       - uses: actions/upload-artifact@v4
         with:
           name: QtScrcpy-wireless-windows-x64
@@ -84,3 +87,4 @@ jobs:
             ctest-results.xml
             build/Testing/Temporary/LastTest.log
             build/tests/benchmark-results.xml
+            build/tests/keymap-results.xml

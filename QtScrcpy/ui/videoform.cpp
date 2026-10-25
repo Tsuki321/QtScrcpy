@@ -69,13 +69,13 @@ VideoForm::VideoForm(bool framelessWindow, bool skin, bool showToolbar, int deco
         grabCursor(false);
         if (!m_keymapEditor) {
             m_keymapEditor = new KeyMapEditor(videoWidget());
-            m_keymapEditor->setScript(m_restoreScript);
             connect(m_keymapEditor, &KeyMapEditor::applied, this, [this](const QString &script) {
                 m_restoreScript = script;
-                m_restoreMapEnabled = true;
+                m_restoreMapEnabled = !script.isEmpty();
             });
             connect(m_keymapEditor, &KeyMapEditor::editingFinished, this, [this]() { applyEditorScript(); setFocus(); });
         }
+        m_keymapEditor->setScript(m_restoreScript);
         m_keymapEditor->open();
     };
     connect(editShortcut, &QShortcut::activated, this, openEditor);

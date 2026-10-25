@@ -111,7 +111,9 @@ private slots:
         QString error;
         const QByteArray data = R"({"switchKey":"Key_QuoteLeft","custom":"preserve",
             "keyMapNodes":[{"type":"KMT_CLICK","key":"Key_F","pos":{"x":0.2,"y":0.8},"switchMap":false},
-            {"type":"KMT_STEER_WHEEL","custom":"keep advanced mappings"}]})";
+            {"type":"KMT_STEER_WHEEL","custom":"keep advanced mappings","centerPos":{"x":0.5,"y":0.5},
+             "leftKey":"Key_A","rightKey":"Key_D","upKey":"Key_W","downKey":"Key_S",
+             "leftOffset":0.2,"rightOffset":0.2,"upOffset":0.2,"downOffset":0.2}]})";
         QVERIFY2(profile.load(data, &error), qPrintable(error));
         KeyMapDocument restored;
         QVERIFY(restored.load(profile.json(), &error));

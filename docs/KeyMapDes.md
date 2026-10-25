@@ -4,6 +4,55 @@ The key map file is in json format, and the new key map file needs to be placed 
 
 The specific writing format of the button mapping file will be introduced below, and you can also refer to the button mapping file that comes with it.
 
+## Built-in editor
+
+Open **Key mapping** from the device window toolbar. Editing temporarily releases
+active fingers and keys. The editor supports all mapping types below and Android
+key events; existing profiles can be loaded and edited directly.
+
+1. Choose a mapping type and click **Add**, or double-click a blank area of the
+   video to place it. Use **Edit / Bind** or double-click a marker to change it.
+2. Enter a Qt key name or click **Capture** and press a key or mouse button.
+   Escape and Tab can be captured; use Cancel to dismiss capture.
+3. Drag touch positions, swipe endpoints, steering centers or sequence points on
+   the video. Properties also accept normalized coordinates from 0 to 1. Tab
+   hides or shows the toolbar when it covers a position you need to edit.
+4. **Apply** activates the edited profile and closes the editor.
+   Use the profile's **Toggle key** to switch
+   between normal input and custom mappings (the default is the backtick key).
+
+**Clear all**, then **Apply**, disables the current profile and releases its
+inputs. You can immediately load or create another profile and apply it.
+**Undo** and **Redo** also cover clearing, deleting, property edits and dragging.
+**New** starts an empty profile. **Save / Save as** writes a JSON file;
+**Load** accepts existing JSON files. Saved profiles default to the application's
+per-user data directory. Place a file in the application's `keymap` directory if
+you also want it listed in the main window's script selector.
+
+Closing the editor restores the last applied profile; unapplied edits remain in
+the editor until a different profile is selected. **JSON** provides advanced
+editing. Invalid positions, missing fields and conflicting key assignments are
+reported before a profile is accepted, keeping the last valid profile intact.
+Extra fields in valid profiles are retained.
+
+| Editor type | Behavior and settings |
+|---|---|
+| Touch / hold | Holds a finger while the binding is held. Optional Android key; optionally releases or recaptures mouse look on binding release. |
+| Tap on press and release | One tap on press and another on release, rather than two taps on press. Optional Android key remains held until release. |
+| Timed tap sequence | Up to 50 ordered positions with a delay before each tap. Finishes after trigger release; retriggering restarts that binding's sequence. |
+| Steering pad (WASD) | Four keyboard bindings, center and independent directional offsets. Supports diagonals and opposite-direction cancellation. One pad per profile. |
+| Swipe | Start/end positions, initial delay and speed from 0 (slowest) to 1 (fastest). The finger stays at the endpoint until release. A new swipe replaces the active swipe. |
+| Android key | Sends an Android numeric keycode on press/release, such as Home (3), Back (4), or volume up/down (24/25). |
+| Mouse look | Origin and separate X/Y speed ratios; lower ratios are faster. Optional free-look binding holds a second origin, then returns to the main origin on release. |
+
+Keyboard and mouse buttons can trigger touches, swipes, sequences and Android
+keys. A binding is assigned once per profile, including the toggle and free-look
+bindings. Modifier keys are individual bindings; key chords and wheel bindings
+are not part of this format. Clearing, replacing, toggling off, resizing the
+device frame or losing window focus releases held inputs and cancels pending
+gestures. Mouse movement continues across touch boundaries without discarding a
+fixed number of movement events.
+
 ## Key mapping script format description
 
 ### General Instructions

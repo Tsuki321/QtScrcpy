@@ -177,6 +177,7 @@ set(QC_UI_SOURCES
     ui/wirelesspanel.h
     ui/wirelesspanel.cpp
     ui/keymapdocument.h
+    ui/keymapproperties.h
     ui/keymapeditor.h
     ui/keymapeditor.cpp
     ui/toolform.h

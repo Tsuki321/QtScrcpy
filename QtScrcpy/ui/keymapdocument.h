@@ -1,4 +1,5 @@
 #pragma once
+#include "KeyMapValidation.h"
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -12,50 +13,16 @@
 class KeyMapDocument
 {
 public:
-    static bool validKey(const QString &key)
-    {
-        const auto name = key.toLatin1();
-        bool valid = false;
-        QMetaEnum::fromType<Qt::Key>().keyToValue(name.constData(), &valid);
-        if (!valid) { QMetaEnum::fromType<Qt::MouseButtons>().keyToValue(name.constData(), &valid); }
-        return valid && key != "NoButton" && key != "Key_unknown";
-    }
+    static bool validKey(const QString &key) { return KeyMapValidation::bindingId(key) != 0; }
     QJsonObject root{{"switchKey", "Key_QuoteLeft"}, {"keyMapNodes", QJsonArray()}};
     bool load(const QByteArray &data, QString *error)
     {
-        QJsonParseError parse;
-        auto doc = QJsonDocument::fromJson(data, &parse);
-        if (parse.error != QJsonParseError::NoError || !doc.isObject()
-                || !doc.object().value("keyMapNodes").isArray()
-                || !doc.object().value("switchKey").isString()) {
-            *error = "Expected a keymap object with switchKey and keyMapNodes.";
-            return false;
-        }
-        const auto candidate = doc.object();
-        if (!validKey(candidate.value("switchKey").toString())) { *error = "Invalid keymap toggle key."; return false; }
-        QSet<QString> keys;
-        for (const auto &value : candidate.value("keyMapNodes").toArray()) {
-            if (!value.isObject()) {
-                *error = "Every mapping must be an object.";
-                return false;
-            }
-            const auto node = value.toObject();
-            if (node.value("type") != "KMT_CLICK") {
-                continue; // Preserve advanced upstream mappings unchanged.
-            }
-            const QString key = node.value("key").toString();
-            const auto pos = node.value("pos").toObject();
-            if (!validKey(key) || key == candidate.value("switchKey").toString() || keys.contains(key)
-                    || !pos.value("x").isDouble() || !pos.value("y").isDouble()
-                    || pos.value("x").toDouble() < 0 || pos.value("x").toDouble() > 1
-                    || pos.value("y").toDouble() < 0 || pos.value("y").toDouble() > 1) {
-                *error = "Click mappings need unique keys and coordinates between 0 and 1.";
-                return false;
-            }
-            keys.insert(key);
-        }
-        root = candidate;
-        return true;
+        return KeyMapValidation::parse(data, &root, error);
+    }
+    void clear()
+    {
+        root.remove("mouseMoveMap");
+        root["keyMapNodes"] = QJsonArray();
     }
     QByteArray json() const { return QJsonDocument(root).toJson(QJsonDocument::Indented); }
     QJsonArray nodes() const { return root.value("keyMapNodes").toArray(); }
