@@ -1,6 +1,5 @@
 #include "wirelesspanel.h"
 #include "wirelessdiscovery.h"
-#include "config.h"
 #include <QCheckBox>
 #include <QCoreApplication>
 #include <QFileInfo>
@@ -16,7 +15,8 @@
 #include <QStandardPaths>
 #include <QVBoxLayout>
 
-WirelessPanel::WirelessPanel(QWidget *parent) : QWidget(parent)
+WirelessPanel::WirelessPanel(const QString &adbPath, QWidget *parent, int timeoutMs)
+    : QWidget(parent), m_adbPath(adbPath), m_timeoutMs(qBound(100, timeoutMs, 30000))
 {
     auto *layout = new QVBoxLayout(this);
     auto *help = new QLabel(tr("Enable Wireless debugging on your phone. Open Pair device with pairing code. "
@@ -25,13 +25,17 @@ WirelessPanel::WirelessPanel(QWidget *parent) : QWidget(parent)
     layout->addWidget(help);
     auto *form = new QFormLayout;
     m_host = new QLineEdit;
+    m_host->setObjectName("phoneIp");
     m_host->setPlaceholderText("192.168.1.35");
     m_pairPort = new QSpinBox;
+    m_pairPort->setObjectName("pairPort");
     m_pairPort->setRange(1, 65535);
     m_connectPort = new QSpinBox;
+    m_connectPort->setObjectName("connectPort");
     m_connectPort->setRange(0, 65535);
     m_connectPort->setSpecialValueText(tr("Discover automatically"));
     m_code = new QLineEdit;
+    m_code->setObjectName("pairCode");
     m_code->setMaxLength(6);
     m_code->setEchoMode(QLineEdit::Password);
     form->addRow(tr("Phone IP address"), m_host);
@@ -41,16 +45,20 @@ WirelessPanel::WirelessPanel(QWidget *parent) : QWidget(parent)
     layout->addLayout(form);
     auto *buttons = new QHBoxLayout;
     m_pairButton = new QPushButton(tr("Pair and connect"));
+    m_pairButton->setObjectName("pairPhone");
     m_connectButton = new QPushButton(tr("Connect paired phone"));
+    m_connectButton->setObjectName("connectPhone");
     buttons->addWidget(m_pairButton);
     buttons->addWidget(m_connectButton);
     layout->addLayout(buttons);
     m_auto = new QCheckBox(tr("Automatically discover wireless phones"));
+    m_auto->setObjectName("autoDiscovery");
     layout->addWidget(m_auto);
     m_services = new QListWidget;
     m_services->setToolTip(tr("Double-click a discovered phone to connect. Pair it first if necessary."));
     layout->addWidget(m_services);
     m_status = new QLabel(tr("Ready. Pairing codes are never saved."));
+    m_status->setObjectName("connectionStatus");
     m_status->setWordWrap(true);
     layout->addWidget(m_status);
     QSettings settings;
@@ -130,7 +138,7 @@ void WirelessPanel::run(const QStringList &args, std::function<void(bool, const 
         return;
     }
     QString program;
-    const QStringList candidates = {Config::getInstance().getAdbPath(),
+    const QStringList candidates = {m_adbPath,
         QString::fromLocal8Bit(qgetenv("QTSCRCPY_ADB_PATH")),
         QCoreApplication::applicationDirPath() + "/adb.exe",
         QCoreApplication::applicationDirPath() + "/adb", QStandardPaths::findExecutable("adb")};
@@ -147,7 +155,7 @@ void WirelessPanel::run(const QStringList &args, std::function<void(bool, const 
     auto environment = QProcessEnvironment::systemEnvironment();
     environment.insert("ADB_MDNS_OPENSCREEN", "1");
     m_process.setProcessEnvironment(environment);
-    m_timeout.start(15000);
+    m_timeout.start(m_timeoutMs);
     m_process.start(program, args);
 }
 

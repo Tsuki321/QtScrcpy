@@ -1170,3 +1170,23 @@ void VideoForm::applyEditorScript()
         }
     }
 }
+
+bool VideoForm::event(QEvent *event)
+{
+    if ((!m_keymapEditor || !m_keymapEditor->isVisible()) &&
+            (event->type() == QEvent::WindowDeactivate || event->type() == QEvent::WindowActivate)) {
+        auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
+        if (device && !device->isCameraMode()) {
+            if (event->type() == QEvent::WindowDeactivate) {
+                m_resumeMapping = device->isCurrentCustomKeymap();
+                device->updateScript(device->currentScript());
+            } else if (m_resumeMapping) {
+                m_resumeMapping = false;
+                m_restoreScript = device->currentScript();
+                m_restoreMapEnabled = true;
+                applyEditorScript();
+            }
+        }
+    }
+    return QWidget::event(event);
+}

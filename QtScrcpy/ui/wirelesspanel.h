@@ -15,7 +15,7 @@ class WirelessPanel : public QWidget
 {
     Q_OBJECT
 public:
-    explicit WirelessPanel(QWidget *parent = nullptr);
+    explicit WirelessPanel(const QString &adbPath, QWidget *parent = nullptr, int timeoutMs = 15000);
     ~WirelessPanel() override;
 signals:
     void devicesChanged();
@@ -27,6 +27,8 @@ private:
              const QByteArray &input = {});
     void finish(bool success, const QString &output);
     void remember();
+    QString m_adbPath;
+    int m_timeoutMs;
     QLineEdit *m_host;
     QSpinBox *m_pairPort;
     QSpinBox *m_connectPort;

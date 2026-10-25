@@ -29,6 +29,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build build --config Release --parallel 2
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item config output/x64/Release/config -Recurse
+          Copy-Item keymap output/x64/Release/keymap -Recurse
           windeployqt --release --no-translations output/x64/Release/QtScrcpy.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Regression tests and measured microbenchmarks
@@ -43,6 +45,7 @@ jobs:
         with:
           name: windows-tests-and-benchmarks
           path: |
+            build/tests/render-white.png
             build/tests/test-results.xml
             build/Testing/Temporary/LastTest.log
             build/tests/benchmark-results.xml
@@ -75,6 +78,7 @@ jobs:
         with:
           name: linux-tests-and-benchmarks
           path: |
+            build/tests/render-white.png
             build/tests/test-results.xml
             build/Testing/Temporary/LastTest.log
             build/tests/benchmark-results.xml

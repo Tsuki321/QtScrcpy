@@ -14,6 +14,7 @@ signals:
     void applied(const QString &script);
     void editingFinished();
 protected:
+    bool focusNextPrevChild(bool) override { return false; }
     bool eventFilter(QObject *object, QEvent *event) override;
     void paintEvent(QPaintEvent *) override;
     void mousePressEvent(QMouseEvent *event) override;
@@ -33,6 +34,7 @@ private:
     void movePoint(QPointF point);
     KeyMapDocument m_document;
     QLabel *m_hint;
+    QWidget *m_toolbar;
     int m_selected = -1;
     bool m_dragging = false;
     bool m_dirty = false;

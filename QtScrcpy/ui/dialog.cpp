@@ -363,17 +363,17 @@ void Dialog::initUI()
     advancedDisplayLayout->addStretch();
     initAdvancedConfigUi(advancedConfigPage);
     configTabs->addTab(startConfigPage, tr("Start Config"));
-    auto *wireless = new WirelessPanel(configTabs);
+    auto *wireless = new WirelessPanel(Config::getInstance().getAdbPath(), configTabs);
     configTabs->addTab(wireless, tr("Wireless pairing"));
     connect(wireless, &WirelessPanel::devicesChanged, this, [this]() {
         if (!m_adb.isRuning()) { on_updateDevice_clicked(); }
     });
-    auto *latencyPreset = new QPushButton(tr("Wireless 720p / 60 FPS preset"), startConfigPage);
+    auto *latencyPreset = new QCheckBox(tr("Wireless preset: 720p, 60 FPS, 4 Mbps"), startConfigPage);
     startConfigPage->layout()->addWidget(latencyPreset);
     latencyPreset->setToolTip(tr("Encode at a 1280-pixel longest edge and scale to your window. Ctrl+U toggles light sharpening; Ctrl+E edits mappings."));
-    connect(latencyPreset, &QPushButton::clicked, this, [this]() {
-        ui->maxSizeBox->setCurrentText("1280");
-        m_wirelessPreset = true;
+    connect(latencyPreset, &QCheckBox::toggled, this, [this](bool enabled) {
+        if (enabled) { ui->maxSizeBox->setCurrentText("1280"); }
+        m_wirelessPreset = enabled;
     });
     configTabs->addTab(advancedDisplayPage, tr("Advanced Display"));
     configTabs->addTab(advancedConfigPage, tr("Advanced Config"));

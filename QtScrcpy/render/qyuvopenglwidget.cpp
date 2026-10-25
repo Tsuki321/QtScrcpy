@@ -134,7 +134,6 @@ void QYUVOpenGLWidget::setFrameSize(const QSize &frameSize)
     if (m_frameSize != frameSize) {
         m_frameSize = frameSize;
         m_needUpdate = true;
-        repaint();
     }
 }
 
@@ -145,14 +144,23 @@ const QSize &QYUVOpenGLWidget::frameSize()
 
 void QYUVOpenGLWidget::updateTextures(quint8 *dataY, quint8 *dataU, quint8 *dataV, quint32 linesizeY, quint32 linesizeU, quint32 linesizeV)
 {
-    if (m_textureInited) {
-        makeCurrent();
-        updateTexture(m_texture[0], 0, dataY, linesizeY);
-        updateTexture(m_texture[1], 1, dataU, linesizeU);
-        updateTexture(m_texture[2], 2, dataV, linesizeV);
-        doneCurrent();
-        repaint();
+    if (!isValid() || m_frameSize.isEmpty() || !dataY || !dataU || !dataV
+            || linesizeY < static_cast<quint32>(m_frameSize.width())
+            || linesizeU < static_cast<quint32>((m_frameSize.width() + 1) / 2)
+            || linesizeV < static_cast<quint32>((m_frameSize.width() + 1) / 2)) {
+        return;
     }
+    makeCurrent();
+    if (m_needUpdate || !m_textureInited) {
+        deInitTextures();
+        initTextures();
+        m_needUpdate = false;
+    }
+    updateTexture(m_texture[0], 0, dataY, linesizeY);
+    updateTexture(m_texture[1], 1, dataU, linesizeU);
+    updateTexture(m_texture[2], 2, dataV, linesizeV);
+    doneCurrent();
+    update();
 }
 
 void QYUVOpenGLWidget::initializeGL()
@@ -172,11 +180,12 @@ void QYUVOpenGLWidget::paintGL()
 {
     m_shaderProgram.bind();
 
-    if (m_needUpdate) {
-            deInitTextures();
-        initTextures();
-        m_needUpdate = false;
-    }
+    glClear(GL_COLOR_BUFFER_BIT);
+    m_vbo.bind();
+    m_shaderProgram.setAttributeBuffer("vertexIn", GL_FLOAT, 0, 3, 3 * sizeof(GLfloat));
+    m_shaderProgram.enableAttributeArray("vertexIn");
+    m_shaderProgram.setAttributeBuffer("textureIn", GL_FLOAT, 12 * sizeof(GLfloat), 2, 2 * sizeof(GLfloat));
+    m_shaderProgram.enableAttributeArray("textureIn");
 
     if (m_textureInited) {
         const bool upscale = width() * devicePixelRatioF() > m_frameSize.width()
@@ -253,7 +262,7 @@ void QYUVOpenGLWidget::initTextures()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, m_frameSize.width() / 2, m_frameSize.height() / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, (m_frameSize.width() + 1) / 2, (m_frameSize.height() + 1) / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr);
 
     glGenTextures(1, &m_texture[2]);
     glBindTexture(GL_TEXTURE_2D, m_texture[2]);
@@ -263,7 +272,7 @@ void QYUVOpenGLWidget::initTextures()
     // 设置st方向上纹理超出坐标时的显示策略
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, m_frameSize.width() / 2, m_frameSize.height() / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, (m_frameSize.width() + 1) / 2, (m_frameSize.height() + 1) / 2, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr);
 
     m_textureInited = true;
 }
@@ -283,7 +292,7 @@ void QYUVOpenGLWidget::updateTexture(GLuint texture, quint32 textureType, quint8
     if (!pixels) {
         return;
     }
-    const QSize plane = textureType == 0 ? m_frameSize : m_frameSize / 2;
+    const QSize plane = textureType == 0 ? m_frameSize : QSize((m_frameSize.width() + 1) / 2, (m_frameSize.height() + 1) / 2);
     if (stride < static_cast<quint32>(plane.width())) {
         return;
     }

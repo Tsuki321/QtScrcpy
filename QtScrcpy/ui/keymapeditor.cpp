@@ -5,7 +5,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFile>
-#include <QHBoxLayout>
+#include <QGridLayout>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QMessageBox>
@@ -70,11 +70,14 @@ KeyMapEditor::KeyMapEditor(QWidget *video) : QWidget(video)
     video->installEventFilter(this);
     auto *layout = new QVBoxLayout(this);
     auto *bar = new QWidget;
+    m_toolbar = bar;
     bar->setStyleSheet("QWidget { background: #20252b; color: white; } QPushButton { padding: 5px; }");
-    auto *buttons = new QHBoxLayout(bar);
-    const auto button = [this, buttons](const QString &text, std::function<void()> action) {
+    auto *buttons = new QGridLayout(bar);
+    int buttonIndex = 0;
+    const auto button = [this, buttons, &buttonIndex](const QString &text, std::function<void()> action) {
         auto *b = new QPushButton(text);
-        buttons->addWidget(b);
+        buttons->addWidget(b, buttonIndex / 3, buttonIndex % 3);
+        ++buttonIndex;
         connect(b, &QPushButton::clicked, this, action);
     };
     button(tr("Load"), [this]() { load(); });
@@ -84,7 +87,7 @@ KeyMapEditor::KeyMapEditor(QWidget *video) : QWidget(video)
     button(tr("Apply"), [this]() { apply(); });
     button(tr("Close"), [this]() { finish(); });
     layout->addWidget(bar);
-    m_hint = new QLabel(tr("Click a screen location to assign a key or mouse button. Drag a marker to move it."));
+    m_hint = new QLabel(tr("Click a screen location to assign a key or mouse button. Drag markers to move them. Tab hides this toolbar to map the entire screen."));
     m_hint->setWordWrap(true);
     m_hint->setStyleSheet("background: #20252b; color: white; padding: 4px;");
     layout->addWidget(m_hint);
@@ -94,6 +97,8 @@ KeyMapEditor::KeyMapEditor(QWidget *video) : QWidget(video)
 
 void KeyMapEditor::open()
 {
+    m_toolbar->show();
+    m_hint->show();
     setGeometry(parentWidget()->rect());
     show();
     raise();
@@ -200,6 +205,9 @@ void KeyMapEditor::keyPressEvent(QKeyEvent *event)
 {
     if (event->key() == Qt::Key_Escape) {
         finish();
+    } else if (event->key() == Qt::Key_Tab) {
+        m_toolbar->setVisible(!m_toolbar->isVisible());
+        m_hint->setVisible(m_toolbar->isVisible());
     } else if (event->key() == Qt::Key_Delete) {
         erase();
     }

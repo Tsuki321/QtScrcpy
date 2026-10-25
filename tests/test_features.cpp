@@ -2,6 +2,14 @@
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include <QTemporaryDir>
+#include <QLineEdit>
+#include <QLabel>
+#include <QSpinBox>
+#include <QPushButton>
+#include <QCheckBox>
+#include <QSettings>
+#include <cstdio>
+#include "wirelesspanel.h"
 #include "wirelessdiscovery.h"
 #include "keymapdocument.h"
 #include "framemetrics.h"
@@ -26,10 +34,60 @@ static bool fill(AVFrame *frame, int w, int h, int value)
     return true;
 }
 
+class BenchmarkWidget : public QYUVOpenGLWidget
+{
+public:
+    void renderSynchronously()
+    {
+        makeCurrent();
+        context()->functions()->glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebufferObject());
+        paintGL();
+        context()->functions()->glFinish();
+        doneCurrent();
+    }
+};
+
 class Features : public QObject
 {
     Q_OBJECT
 private slots:
+    void pairingAndDiscovery()
+    {
+        WirelessPanel panel(QCoreApplication::applicationFilePath());
+        auto *host = panel.findChild<QLineEdit *>("phoneIp");
+        auto *code = panel.findChild<QLineEdit *>("pairCode");
+        auto *pair = panel.findChild<QPushButton *>("pairPhone");
+        auto *status = panel.findChild<QLabel *>("connectionStatus");
+        panel.findChild<QCheckBox *>("autoDiscovery")->setChecked(false);
+        host->setText("127.0.0.1");
+        panel.findChild<QSpinBox *>("pairPort")->setValue(9001);
+        panel.findChild<QSpinBox *>("connectPort")->setValue(0);
+        code->setText("123456");
+        QTRY_VERIFY_WITH_TIMEOUT(pair->isEnabled(), 5000);
+        pair->click();
+        QVERIFY(code->text().isEmpty());
+        QTRY_VERIFY_WITH_TIMEOUT(status->text().startsWith("Connected."), 5000);
+        QVERIFY(!QSettings().allKeys().contains("wireless/pairCode"));
+        code->setText("000000");
+        pair->click();
+        QTRY_VERIFY_WITH_TIMEOUT(status->text().startsWith("Pairing failed"), 5000);
+        QVERIFY(pair->isEnabled());
+    }
+    void adbTimeoutLeavesUiResponsive()
+    {
+        WirelessPanel panel(QCoreApplication::applicationFilePath(), nullptr, 250);
+        panel.findChild<QCheckBox *>("autoDiscovery")->setChecked(false);
+        panel.findChild<QLineEdit *>("phoneIp")->setText("192.0.2.1");
+        panel.findChild<QSpinBox *>("connectPort")->setValue(9002);
+        auto *button = panel.findChild<QPushButton *>("connectPhone");
+        QTRY_VERIFY(button->isEnabled());
+        bool timerFired = false;
+        QTimer::singleShot(30, &panel, [&]() { timerFired = true; });
+        button->click();
+        QTRY_VERIFY_WITH_TIMEOUT(timerFired, 200);
+        QTRY_VERIFY_WITH_TIMEOUT(button->isEnabled(), 3000);
+        QVERIFY(panel.findChild<QLabel *>("connectionStatus")->text().startsWith("Connection failed"));
+    }
     void discovery()
     {
         QCOMPARE(WirelessDiscovery::endpoint("192.168.1.35", 41351), QString("192.168.1.35:41351"));
@@ -140,6 +198,22 @@ private slots:
         controller.updateScript(script);
         QCOMPARE(static_cast<unsigned char>(packets.last()[1]), 1u);
     }
+    void reloadReleasesNormalKeyAndPinch()
+    {
+        QList<QByteArray> packets;
+        Controller controller([&](const QByteArray &data) { packets.append(data); return data.size(); }, QString());
+        const QSize frame(1080, 1920);
+        QKeyEvent down(QEvent::KeyPress, Qt::Key_Left, Qt::NoModifier);
+        controller.keyEvent(&down, frame, frame);
+        QMouseEvent touch(QEvent::MouseButtonPress, QPointF(100, 200), Qt::LeftButton, Qt::LeftButton, Qt::ControlModifier);
+        controller.mouseEvent(&touch, frame, frame);
+        const int before = packets.size();
+        controller.updateScript(QString());
+        QCOMPARE(packets.size(), before + 3); // key, primary finger, virtual finger
+        for (int i = before; i < packets.size(); ++i) {
+            QCOMPARE(static_cast<unsigned char>(packets[i][1]), 1u);
+        }
+    }
     void renderCurrentPaddedFrame()
     {
         QYUVOpenGLWidget widget;
@@ -156,6 +230,8 @@ private slots:
         widget.updateTextures(reinterpret_cast<quint8 *>(y.data()), reinterpret_cast<quint8 *>(uv.data()),
                               reinterpret_cast<quint8 *>(uv.data()), stride, uvStride, uvStride);
         auto image = widget.grabFramebuffer();
+        image.save("render-white.png");
+        qInfo() << "White pixel:" << image.pixelColor(image.width() * 3 / 4, image.height() / 2);
         QVERIFY(image.pixelColor(image.width() * 3 / 4, image.height() / 2).red() > 235);
         y.fill(16);
         widget.setSharpening(true);
@@ -175,7 +251,7 @@ private slots:
             QByteArray y(reinterpret_cast<char *>(frame->data[0]), frame->linesize[0] * frame->height);
             QByteArray u(reinterpret_cast<char *>(frame->data[1]), frame->linesize[1] * frame->height / 2);
             QByteArray v(reinterpret_cast<char *>(frame->data[2]), frame->linesize[2] * frame->height / 2);
-            QVERIFY(y[0] == 100 && !u.isEmpty() && !v.isEmpty());
+            QVERIFY(y.at(0) == char(100) && !u.isEmpty() && !v.isEmpty());
         }
         av_frame_free(&frame);
     }
@@ -199,23 +275,54 @@ private slots:
     void renderBenchmark()
     {
         QFETCH(bool, sharpening);
-        QYUVOpenGLWidget widget;
+        BenchmarkWidget widget;
         widget.resize(1920, 1080);
         widget.show();
         QTest::qWait(100);
         QVERIFY(widget.isValid());
         widget.setFrameSize(QSize(1280, 720));
         widget.setSharpening(sharpening);
+        widget.makeCurrent();
+        qInfo() << "Renderer:" << reinterpret_cast<const char *>(widget.context()->functions()->glGetString(GL_RENDERER));
+        widget.doneCurrent();
         QByteArray y(1280 * 720, 100), uv(640 * 360, 128);
         QBENCHMARK {
             widget.updateTextures(reinterpret_cast<quint8 *>(y.data()), reinterpret_cast<quint8 *>(uv.data()),
                                   reinterpret_cast<quint8 *>(uv.data()), 1280, 640, 640);
-            widget.makeCurrent();
-            widget.context()->functions()->glFinish();
-            widget.doneCurrent();
+            widget.renderSynchronously();
         }
     }
 };
 
-QTEST_MAIN(Features)
+int main(int argc, char **argv)
+{
+    // The same executable acts as a deterministic ADB child process in the
+    // pairing tests. No real phone or network access is required in CI.
+    if (argc > 1 && QByteArray(argv[1]) == "mdns") {
+        std::puts("phone\t_adb-tls-connect._tcp\t127.0.0.1:9002");
+        return 0;
+    }
+    if (argc > 1 && QByteArray(argv[1]) == "pair") {
+        char code[32] = {};
+        if (std::fgets(code, sizeof(code), stdin) && QByteArray(code).trimmed() == "123456") {
+            std::puts("Successfully paired");
+            return 0;
+        }
+        std::puts("Pairing failed");
+        return 1;
+    }
+    if (argc > 2 && QByteArray(argv[1]) == "connect") {
+        if (QByteArray(argv[2]).startsWith("192.0.2.1")) { QThread::msleep(30000); }
+        std::puts("connected to phone");
+        return 0;
+    }
+    QApplication app(argc, argv);
+    QCoreApplication::setOrganizationName("QtScrcpyTests");
+    QCoreApplication::setApplicationName("WirelessTests");
+    QTemporaryDir settings;
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settings.path());
+    Features features;
+    return QTest::qExec(&features, argc, argv);
+}
 #include "test_features.moc"

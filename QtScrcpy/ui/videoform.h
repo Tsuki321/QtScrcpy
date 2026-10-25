@@ -26,6 +26,8 @@ class VideoForm : public QWidget, public qsc::DeviceObserver
     bool m_lightSharpening = false;
     QString m_restoreScript;
     bool m_restoreMapEnabled = false;
+    bool m_resumeMapping = false;
+    bool event(QEvent *event) override;
     void applyEditorScript();
     FrameMetrics m_metrics;
     bool m_benchmarkStarted = false;

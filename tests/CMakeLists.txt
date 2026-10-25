@@ -7,6 +7,7 @@ endif()
 find_package(Qt${QT_DESIRED_VERSION} REQUIRED COMPONENTS Test Widgets Network)
 set(CORE ${CMAKE_SOURCE_DIR}/QtScrcpy/QtScrcpyCore)
 add_executable(qtscrcpy_tests test_features.cpp
+    ../QtScrcpy/ui/wirelesspanel.cpp ../QtScrcpy/ui/wirelesspanel.h
     ../QtScrcpy/render/qyuvopenglwidget.cpp ../QtScrcpy/render/qyuvopenglwidget.h)
 target_include_directories(qtscrcpy_tests PRIVATE
     ../QtScrcpy/ui ../QtScrcpy/util ../QtScrcpy/render

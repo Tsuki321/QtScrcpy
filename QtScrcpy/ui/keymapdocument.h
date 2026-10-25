@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QPointF>
 #include <QSize>
+#include <QMetaEnum>
 #include <QSet>
 #include <cmath>
 
@@ -11,6 +12,14 @@
 class KeyMapDocument
 {
 public:
+    static bool validKey(const QString &key)
+    {
+        const auto name = key.toLatin1();
+        bool valid = false;
+        QMetaEnum::fromType<Qt::Key>().keyToValue(name.constData(), &valid);
+        if (!valid) { QMetaEnum::fromType<Qt::MouseButtons>().keyToValue(name.constData(), &valid); }
+        return valid && key != "NoButton" && key != "Key_unknown";
+    }
     QJsonObject root{{"switchKey", "Key_QuoteLeft"}, {"keyMapNodes", QJsonArray()}};
     bool load(const QByteArray &data, QString *error)
     {
@@ -23,6 +32,7 @@ public:
             return false;
         }
         const auto candidate = doc.object();
+        if (!validKey(candidate.value("switchKey").toString())) { *error = "Invalid keymap toggle key."; return false; }
         QSet<QString> keys;
         for (const auto &value : candidate.value("keyMapNodes").toArray()) {
             if (!value.isObject()) {
@@ -35,7 +45,7 @@ public:
             }
             const QString key = node.value("key").toString();
             const auto pos = node.value("pos").toObject();
-            if (key.isEmpty() || key == candidate.value("switchKey").toString() || keys.contains(key)
+            if (!validKey(key) || key == candidate.value("switchKey").toString() || keys.contains(key)
                     || !pos.value("x").isDouble() || !pos.value("y").isDouble()
                     || pos.value("x").toDouble() < 0 || pos.value("x").toDouble() > 1
                     || pos.value("y").toDouble() < 0 || pos.value("y").toDouble() > 1) {
